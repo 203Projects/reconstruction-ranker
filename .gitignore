@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+build/
+local.properties
+captures/
+.cxx/
+
+# IDEA
+.idea/
+*.iml
+out/
+
+# Xcode
+xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+.swiftpm/
+Pods/
+*.xcuserstate
+
+# Kotlin
+.kotlin/
+
+# OS
+.DS_Store
+
+# Misc
+*.log
+
+# Bundled Google Fonts — fetched via scripts/install-fonts.sh on first build.
+# Keep the directory itself (and OFL.txt) tracked so the path exists for
+# Compose Resources, but skip the heavy .ttf payload.
+composeApp/src/commonMain/composeResources/font/*.ttf
+
+# Local Android SDK pointer
+local.properties
