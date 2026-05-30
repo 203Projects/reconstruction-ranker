@@ -48,9 +48,14 @@ fun ConstructionSlider(
     onValueChange: (Double) -> Unit,
     range: ClosedRange<Double>,
     markers: List<PeerMarker>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
-    Column(modifier.fillMaxWidth().padding(vertical = Design.spacing.md)) {
+    // Compact mode tightens vertical rhythm so the Q2 panel (4 sliders) fits a phone
+    // viewport without an internal scroll. No information is removed — only spacing.
+    val outerPad = if (compact) Design.spacing.xs else Design.spacing.sm
+    val railMin = if (compact) 16.dp else 22.dp
+    Column(modifier.fillMaxWidth().padding(vertical = outerPad)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
@@ -78,7 +83,7 @@ fun ConstructionSlider(
                 )
             }
         }
-        VSpace(Design.spacing.sm)
+        if (!compact) VSpace(Design.spacing.xs)
 
         Slider(
             value = value.toFloat(),
@@ -95,7 +100,7 @@ fun ConstructionSlider(
         )
 
         // Peer markers row — a low rail with dots + names, clipped at edges
-        BoxWithConstraints(Modifier.fillMaxWidth().heightIn(min = 26.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().heightIn(min = railMin)) {
             val totalWidthDp = maxWidth
             val span = (range.endInclusive - range.start).coerceAtLeast(0.0001)
             // background rail

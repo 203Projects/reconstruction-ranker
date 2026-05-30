@@ -515,7 +515,7 @@ private fun QuestionSelectScreen(state: AppState, d: District, t: TypeInfo) {
             verticalArrangement = Arrangement.spacedBy(Design.spacing.lg)
         ) {
             QuestionHeroCard(1, Question.Q1.title,
-                "공사비·조분·일분이 움직이면 내 분담금이 얼마가 될지 슬라이더로 살펴봅니다.",
+                "공사비·조합원분양가·일반분양가가 움직이면 내 분담금이 얼마가 될지 슬라이더로 살펴봅니다.",
                 ChipTone.Primary) { state.openQuestion(d, t, Question.Q1) }
             QuestionHeroCard(2, Question.Q2.title,
                 "KB시세에 분담금을 더한 총투자금이 신축 완공 시 예상가액보다 낮은지 비교합니다.",
@@ -647,55 +647,80 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
             onBack = { state.pop() }
         )
 
+        // Results region — compacted. Q1 = one card; Q2 = two side-by-side cards.
+        // Retains verticalScroll only as a safety net on very short viewports.
         Column(
             Modifier
-                .weight(1f)
+                .weight(if (question == Question.Q2) 0.35f else 0.45f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)
         ) {
-            TrustCard(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ToneChip(text = "분담금", tone = ChipTone.Primary)
-                        HSpace(Design.spacing.sm)
-                        Text("비례율 ${Format.percent(result.proportionRatio)}", style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkMuted)
-                    }
-                    VSpace(Design.spacing.sm)
-                    HeroNumber(
-                        value = Format.burdenWithRefund(result.burden),
-                        tone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss,
-                        label = if (result.burden < 0) "환급 받습니다" else "추가로 납부합니다"
-                    )
-                    VSpace(Design.spacing.md)
-                    HairlineDivider()
-                    VSpace(Design.spacing.sm)
-                    StatLine("권리가액", Format.eok(result.rights))
-                    StatLine("전용84 조합원분양가", Format.eok(result.unionPrice84))
-                }
-            }
-            if (question == Question.Q2) {
-                VSpace(Design.spacing.md)
+            if (question == Question.Q1) {
+                // Q1: single 분담금 card. Read order 종전자산 → 권리가액 → 전용84 조합원분양가
+                // (권리가액 = 종전자산 × 비례율, so 종전자산 sits above 권리가액).
                 TrustCard(modifier = Modifier.fillMaxWidth()) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            ToneChip(text = "투자 수익", tone = ChipTone.Gold)
+                            ToneChip(text = "분담금", tone = ChipTone.Primary)
                             HSpace(Design.spacing.sm)
-                            Text("KB시세 + 분담금 vs 신축예상", style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkMuted)
+                            Text("비례율 ${Format.percent(result.proportionRatio)}", style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkMuted)
                         }
                         VSpace(Design.spacing.sm)
                         HeroNumber(
-                            value = Format.percent(result.roi),
-                            tone = if (result.roi >= 0) ChipTone.Gain else ChipTone.Loss,
-                            label = "수익률"
+                            value = Format.burdenWithRefund(result.burden),
+                            tone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss,
+                            label = if (result.burden < 0) "환급 받습니다" else "추가로 납부합니다"
                         )
                         VSpace(Design.spacing.md)
                         HairlineDivider()
                         VSpace(Design.spacing.sm)
-                        StatLine("KB시세", Format.eok(result.kbPrice))
-                        StatLine("총투자금", Format.eok(result.totalInvest))
-                        StatLine("신축예상가", Format.eok(result.newPrice84))
-                        StatLine("마진", Format.eok(result.margin),
-                            tone = if (result.margin >= 0) ChipTone.Gain else ChipTone.Loss)
+                        StatLine("종전자산 추정가액", Format.eok(t.priorUnitPrice))
+                        StatLine("권리가액", Format.eok(result.rights))
+                        StatLine("전용84 조합원분양가", Format.eok(result.unionPrice84))
+                    }
+                }
+            } else {
+                // Q2: 분담금 + 투자수익 side-by-side to free vertical room for 4 sliders.
+                Row(horizontalArrangement = Arrangement.spacedBy(Design.spacing.md)) {
+                    TrustCard(
+                        modifier = Modifier.weight(1f),
+                        padding = PaddingValues(Design.spacing.md)
+                    ) {
+                        Column {
+                            ToneChip(text = "분담금", tone = ChipTone.Primary)
+                            VSpace(Design.spacing.sm)
+                            Text("비례율 ${Format.percent(result.proportionRatio)}", style = MaterialTheme.typography.labelMedium, color = ConstructionColors.InkMuted)
+                            HeroNumber(
+                                value = Format.burdenWithRefund(result.burden),
+                                tone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss
+                            )
+                            VSpace(Design.spacing.sm)
+                            HairlineDivider()
+                            VSpace(Design.spacing.xs)
+                            StatLine("종전자산", Format.eok(t.priorUnitPrice))
+                            StatLine("권리가액", Format.eok(result.rights))
+                        }
+                    }
+                    TrustCard(
+                        modifier = Modifier.weight(1f),
+                        padding = PaddingValues(Design.spacing.md)
+                    ) {
+                        Column {
+                            ToneChip(text = "투자 수익", tone = ChipTone.Gold)
+                            VSpace(Design.spacing.sm)
+                            Text("총투자금 vs 신축예상", style = MaterialTheme.typography.labelMedium, color = ConstructionColors.InkMuted)
+                            HeroNumber(
+                                value = Format.percent(result.roi),
+                                tone = if (result.roi >= 0) ChipTone.Gain else ChipTone.Loss,
+                                label = "수익률"
+                            )
+                            VSpace(Design.spacing.sm)
+                            HairlineDivider()
+                            VSpace(Design.spacing.xs)
+                            StatLine("총투자금", Format.eok(result.totalInvest))
+                            StatLine("마진", Format.eok(result.margin),
+                                tone = if (result.margin >= 0) ChipTone.Gain else ChipTone.Loss)
+                        }
                     }
                 }
             }
@@ -703,11 +728,13 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
 
         HairlineDivider()
 
+        // Slider region — NO internal scroll. All sliders fit at once (item 7/8/9).
+        // Q2 has 4 sliders, so it runs in compact mode + a larger weight to fit a phone viewport.
+        val dense = question == Question.Q2
         Column(
             Modifier
-                .weight(1f)
+                .weight(if (dense) 0.72f else 0.55f)
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)
         ) {
             Text("변수를 움직여 보세요", style = MaterialTheme.typography.titleLarge, color = ConstructionColors.NavyDeep, fontWeight = FontWeight.SemiBold)
@@ -715,32 +742,35 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
 
             ConstructionSlider(
                 title = "공사비",
-                sub = "평당 ${Format.round(d.base.pyeongConstructionCost, 2)} 백만원",
+                sub = "기준 평당 ${Format.manwon(d.base.pyeongConstructionCost)}",
                 value = factorT,
-                valueDisplay = "×${Format.round(factorT, 2)}",
+                valueDisplay = Format.manwon(d.base.pyeongConstructionCost * factorT),
                 onValueChange = { factorT = it },
                 range = 0.6..1.4,
-                markers = peers.map { PeerMarker(peerShort(it), it.base.pyeongConstructionCost / d.base.pyeongConstructionCost) }
+                markers = peers.map { PeerMarker(peerShort(it), it.base.pyeongConstructionCost / d.base.pyeongConstructionCost) },
+                compact = dense
             )
             ConstructionSlider(
-                title = "조합분양가",
-                sub = "평당 ${Format.round(d.base.unionPyeongPrice, 2)} 백만원",
+                title = "국민평형 조합원분양가 (전용84)",
+                sub = "기준 ${Format.eok(d.base.unionPrice84)}",
                 value = factorL,
-                valueDisplay = "×${Format.round(factorL, 2)}",
+                valueDisplay = Format.eok(d.base.unionPrice84 * factorL),
                 onValueChange = { factorL = it },
                 range = 0.6..1.4,
-                markers = peers.map { PeerMarker(peerShort(it), it.base.unionPyeongPrice / d.base.unionPyeongPrice) }
+                markers = peers.map { PeerMarker(peerShort(it), it.base.unionPrice84 / d.base.unionPrice84) },
+                compact = dense
             )
             ConstructionSlider(
-                title = "일반분양가",
-                sub = "평당 ${Format.round(d.base.publicPyeongPrice, 2)} 백만원",
+                title = "국민평형 일반분양가 (전용84)",
+                sub = "기준 ${Format.eok(d.base.publicPrice84)}",
                 value = factorJ,
-                valueDisplay = "×${Format.round(factorJ, 2)}",
+                valueDisplay = Format.eok(d.base.publicPrice84 * factorJ),
                 onValueChange = { factorJ = it },
                 range = 0.6..1.4,
-                markers = peers.map { PeerMarker(peerShort(it), it.base.publicPyeongPrice / d.base.publicPyeongPrice) }
+                markers = peers.map { PeerMarker(peerShort(it), it.base.publicPrice84 / d.base.publicPrice84) },
+                compact = dense
             )
-            if (question == Question.Q2) {
+            if (dense) {
                 val atMin = d.base.estimatedNewPrice84 * 0.6
                 val atMax = d.base.estimatedNewPrice84 * 1.4
                 ConstructionSlider(
@@ -750,45 +780,27 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
                     valueDisplay = Format.eok(atOverride),
                     onValueChange = { atOverride = it },
                     range = atMin..atMax,
-                    markers = peers.map { PeerMarker(peerShort(it), it.base.estimatedNewPrice84) }
+                    markers = peers.map { PeerMarker(peerShort(it), it.base.estimatedNewPrice84) },
+                    compact = true
                 )
             }
-            VSpace(Design.spacing.md)
+            VSpace(if (dense) Design.spacing.xs else Design.spacing.sm)
             ActionRow(
                 onReset = {
                     factorT = 1.0; factorL = 1.0; factorJ = 1.0
                     atOverride = d.base.estimatedNewPrice84
                 }
             )
-            VSpace(Design.spacing.lg)
         }
     }
 }
 
 @Composable
 private fun ActionRow(onReset: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Design.spacing.sm)
-    ) {
-        OutlinedButton(onClick = onReset, modifier = Modifier.weight(1f)) {
-            Text("기본값으로", fontWeight = FontWeight.SemiBold)
-        }
-        Button(
-            onClick = { /* stub */ },
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = ConstructionColors.NavyTint,
-                contentColor = ConstructionColors.NavyDeep
-            )
-        ) { Text("고쳐주세요", fontWeight = FontWeight.SemiBold) }
-        Button(
-            onClick = { /* stub */ },
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = ConstructionColors.CopperSoft,
-                contentColor = ConstructionColors.Loss
-            )
-        ) { Text("우리 단지도", fontWeight = FontWeight.SemiBold) }
+    // Consolidated to the single reset action. The "고쳐주세요" / "우리 단지도"
+    // entries live on the My tab (TabScreens.MyScreen) — keeping them here too
+    // was redundant and cost a row of vertical space in the slider panel.
+    OutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
+        Text("기본값으로", fontWeight = FontWeight.SemiBold)
     }
 }

@@ -12,6 +12,17 @@ object Format {
         return if (withUnit) "${s}억" else s
     }
 
+    /**
+     * Convert million-won internal value into 만원 (10K won) and format like "1,058만원".
+     * 1 백만원 (million-won) = 100 만원. Reuses [round] so it inherits the NaN/Infinite "—" guard
+     * and the thousands separator. Defaults to whole-만원 (decimals=0) to match the mentor-tone
+     * 공사비 label "평당 1,058만원".
+     */
+    fun manwon(millionWon: Double, withUnit: Boolean = true, decimals: Int = 0): String {
+        val s = round(millionWon * 100.0, decimals)
+        return if (withUnit) "${s}만원" else s
+    }
+
     /** Format burden specifically — show negative as "환급". */
     fun burdenWithRefund(millionWon: Double): String {
         val absStr = eok(abs(millionWon))
