@@ -51,10 +51,10 @@ fun TrustCard(
     padding: PaddingValues = PaddingValues(Design.spacing.lg),
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(Design.radii.lg)
+    val shape = RoundedCornerShape(Design.radii.xl)
     val baseMod = modifier
         .shadow(
-            elevation = if (emphasized) 6.dp else 2.dp,
+            elevation = if (emphasized) 8.dp else 3.dp,
             shape = shape,
             ambientColor = ConstructionColors.NavyDeep.copy(alpha = 0.08f),
             spotColor = ConstructionColors.NavyDeep.copy(alpha = 0.10f)
@@ -80,7 +80,7 @@ fun QuietCard(
     padding: PaddingValues = PaddingValues(Design.spacing.lg),
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(Design.radii.md)
+    val shape = RoundedCornerShape(Design.radii.lg)
     Surface(
         modifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -112,7 +112,7 @@ fun ToneChip(
     Box(
         modifier
             .background(bg, RoundedCornerShape(Design.radii.pill))
-            .padding(horizontal = Design.spacing.sm, vertical = 3.dp)
+            .padding(horizontal = Design.spacing.sm, vertical = Design.spacing.xs)
     ) {
         Text(
             text = text,

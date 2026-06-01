@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -46,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +62,7 @@ import com.jaejal.reconstruction.data.TypeInfo
 import com.jaejal.reconstruction.design.BottomNavItem
 import com.jaejal.reconstruction.design.ChipTone
 import com.jaejal.reconstruction.design.ConstructionBottomBar
+import com.jaejal.reconstruction.design.ConstructionLogo
 import com.jaejal.reconstruction.design.ConstructionColors
 import com.jaejal.reconstruction.design.ConstructionIcons
 import com.jaejal.reconstruction.design.ConstructionSlider
@@ -202,10 +207,19 @@ private fun DetailTopBar(
     breadcrumb: List<String>,
     onBack: () -> Unit
 ) {
+    val barShape = RoundedCornerShape(bottomStart = Design.radii.lg, bottomEnd = Design.radii.lg)
     Column {
         Box(
             Modifier
                 .fillMaxWidth()
+                .shadow(
+                    elevation = 3.dp,
+                    shape = barShape,
+                    ambientColor = ConstructionColors.NavyDeep.copy(alpha = 0.05f),
+                    spotColor = ConstructionColors.NavyDeep.copy(alpha = 0.07f),
+                    clip = false
+                )
+                .clip(barShape)
                 .background(
                     Brush.verticalGradient(
                         listOf(ConstructionColors.PaperAlt, ConstructionColors.Paper)
@@ -245,7 +259,6 @@ private fun DetailTopBar(
                 }
             }
         }
-        HairlineDivider()
     }
 }
 
@@ -297,12 +310,16 @@ private fun RankingHero() {
             .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.xxl)
     ) {
         Column {
-            Text(
-                "재건축 랭커",
-                style = MaterialTheme.typography.displayLarge,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ConstructionLogo(size = 40.dp, onDark = true)
+                HSpace(Design.spacing.md)
+                Text(
+                    "재건축 랭커",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             VSpace(6.dp)
             Text(
                 "공개 고시문 기반 분담금 · 매도판단 시뮬레이터",
@@ -323,7 +340,7 @@ private fun RankingHero() {
 private fun StatBadge(label: String, value: String) {
     Column(
         Modifier
-            .background(Color.White.copy(alpha = 0.10f), RoundedCornerShape(Design.radii.md))
+            .background(Color.White.copy(alpha = 0.10f), RoundedCornerShape(Design.radii.lg))
             .padding(horizontal = Design.spacing.md, vertical = Design.spacing.sm)
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
@@ -591,12 +608,22 @@ private fun DisclaimerScreen(state: AppState) {
                 .padding(Design.spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Design.spacing.sm)
         ) {
-            OutlinedButton(onClick = { state.pop() }, modifier = Modifier.weight(1f)) { Text("뒤로") }
+            OutlinedButton(
+                onClick = { state.pop() },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(Design.radii.xl),
+                border = BorderStroke(1.dp, ConstructionColors.Border),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.Navy)
+            ) { Text("뒤로") }
             Button(
                 onClick = { state.acceptDisclaimer() },
                 modifier = Modifier.weight(2f),
-                colors = ButtonDefaults.buttonColors(containerColor = ConstructionColors.Navy)
-            ) { Text("동의하고 계속합니다", color = Color.White, fontWeight = FontWeight.SemiBold) }
+                shape = RoundedCornerShape(Design.radii.xl),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ConstructionColors.Navy,
+                    contentColor = ConstructionColors.InkOnDark
+                )
+            ) { Text("동의하고 계속합니다", fontWeight = FontWeight.SemiBold) }
         }
     }
 }
@@ -800,7 +827,15 @@ private fun ActionRow(onReset: () -> Unit) {
     // Consolidated to the single reset action. The "고쳐주세요" / "우리 단지도"
     // entries live on the My tab (TabScreens.MyScreen) — keeping them here too
     // was redundant and cost a row of vertical space in the slider panel.
-    OutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
+    FilledTonalButton(
+        onClick = onReset,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Design.radii.xl),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = ConstructionColors.NavyTint,
+            contentColor = ConstructionColors.NavyDeep
+        )
+    ) {
         Text("기본값으로", fontWeight = FontWeight.SemiBold)
     }
 }
