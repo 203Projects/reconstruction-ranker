@@ -1,34 +1,34 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.jaejal.reconstruction.design
 
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 
 data class PeerMarker(val label: String, val value: Double)
@@ -48,9 +48,14 @@ fun ConstructionSlider(
     onValueChange: (Double) -> Unit,
     range: ClosedRange<Double>,
     markers: List<PeerMarker>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
-    Column(modifier.fillMaxWidth().padding(vertical = Design.spacing.md)) {
+    // Compact mode tightens vertical rhythm so the Q2 panel (4 sliders) fits a phone
+    // viewport without an internal scroll. No information is removed — only spacing.
+    val outerPad = if (compact) Design.spacing.xs else Design.spacing.sm
+    val railMin = if (compact) 16.dp else 22.dp
+    Column(modifier.fillMaxWidth().padding(vertical = outerPad)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
@@ -78,24 +83,50 @@ fun ConstructionSlider(
                 )
             }
         }
-        VSpace(Design.spacing.sm)
+        if (!compact) VSpace(Design.spacing.xs)
 
+        // M3-expressive restyle: hoist colors so the same palette feeds both the
+        // custom thumb and track slots. Track is thickened to 8dp with fully
+        // rounded caps (stop indicators removed) for a softer, more confident feel.
+        val sliderColors = SliderDefaults.colors(
+            thumbColor = ConstructionColors.Navy,
+            activeTrackColor = ConstructionColors.Navy,
+            inactiveTrackColor = ConstructionColors.Hairline,
+            activeTickColor = Color.Transparent,
+            inactiveTickColor = Color.Transparent
+        )
+        val thumbInteractionSource = remember { MutableInteractionSource() }
+        // Compact mode keeps the original ~20dp thumb; the standard panel uses a
+        // slightly larger 22dp thumb to balance the thicker track.
+        val thumbDiameter = if (compact) 20.dp else 22.dp
         Slider(
             value = value.toFloat(),
             onValueChange = { onValueChange(it.toDouble()) },
             valueRange = range.start.toFloat()..range.endInclusive.toFloat(),
-            colors = SliderDefaults.colors(
-                thumbColor = ConstructionColors.Navy,
-                activeTrackColor = ConstructionColors.Navy,
-                inactiveTrackColor = ConstructionColors.Hairline,
-                activeTickColor = Color.Transparent,
-                inactiveTickColor = Color.Transparent
-            ),
-            modifier = Modifier.fillMaxWidth()
+            colors = sliderColors,
+            modifier = Modifier.fillMaxWidth(),
+            thumb = {
+                SliderDefaults.Thumb(
+                    interactionSource = thumbInteractionSource,
+                    colors = sliderColors,
+                    thumbSize = DpSize(thumbDiameter, thumbDiameter)
+                )
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    colors = sliderColors,
+                    modifier = Modifier.height(8.dp),
+                    // Remove the M3 stop indicator dots and let the 8dp track keep
+                    // its default fully-rounded end caps for an expressive look.
+                    drawStopIndicator = null,
+                    trackInsideCornerSize = 0.dp
+                )
+            }
         )
 
         // Peer markers row — a low rail with dots + names, clipped at edges
-        BoxWithConstraints(Modifier.fillMaxWidth().heightIn(min = 26.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().heightIn(min = railMin)) {
             val totalWidthDp = maxWidth
             val span = (range.endInclusive - range.start).coerceAtLeast(0.0001)
             // background rail
@@ -104,7 +135,8 @@ fun ConstructionSlider(
                     .fillMaxWidth()
                     .height(2.dp)
                     .background(ConstructionColors.Hairline)
-                    .offset(y = 8.dp)
+                    // Nudged from 8dp to 10dp so the rail clears the thicker 8dp track.
+                    .offset(y = 10.dp)
             )
             markers.forEach { m ->
                 val clipped = m.value.coerceIn(range.start, range.endInclusive)

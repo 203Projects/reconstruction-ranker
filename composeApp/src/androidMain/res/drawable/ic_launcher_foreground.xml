@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!--
+        ㅈ-rooftop mark. All geometry spans x:30..78, y:26.5..75 — safely inside
+        the 66dp (x/y: 21..87) adaptive-icon safe zone, with ~9 units margin on
+        every side. Safe under circle, squircle, and rounded-square masks.
+
+        Navy (#1B3556) = ConstructionColors.Navy (hardcoded: androidMain-only res XML)
+        Gold  (#A8801A) = ConstructionColors.Gold (same exception)
+
+        PATH 1: Navy stroked mark — ridge bar + apex connector + left rafter +
+                right rafter + foundation baseline. strokeWidth 5.4 ≈ 1.8 * (108/24)
+                keeps the same optical weight as the in-app ConstructionIcons set.
+        PATH 2: Gold filled diamond ridge-cap at apex (54, 33) — the "rank #1" cue.
+    -->
+
+    <!-- PATH 1: Navy ㅈ-rooftop structure (stroked, no fill) -->
+    <path
+        android:strokeColor="#1B3556"
+        android:strokeWidth="5.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M30,33 L78,33 M54,33 L54,43 M54,43 L33,75 M54,43 L75,75 M33,75 L75,75" />
+
+    <!-- PATH 2: Gold filled diamond ridge-cap at apex (54,33), ~7 units across -->
+    <path
+        android:fillColor="#A8801A"
+        android:pathData="M54,26.5 L57.5,33 L54,39.5 L50.5,33 Z" />
+</vector>

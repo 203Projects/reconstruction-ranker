@@ -30,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -57,12 +59,20 @@ fun ConstructionBottomBar(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val barShape = RoundedCornerShape(topStart = Design.radii.lg, topEnd = Design.radii.lg)
     Column(
         modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = barShape,
+                ambientColor = ConstructionColors.NavyDeep.copy(alpha = 0.06f),
+                spotColor = ConstructionColors.NavyDeep.copy(alpha = 0.08f),
+                clip = false
+            )
+            .clip(barShape)
             .background(MaterialTheme.colorScheme.surface)
     ) {
-        HairlineDivider()
         Row(
             Modifier
                 .fillMaxWidth()
