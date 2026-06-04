@@ -1,9 +1,15 @@
 package com.jaejal.reconstruction.design
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,13 +29,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -278,4 +288,80 @@ fun VSpace(value: Dp) {
 @Composable
 fun HSpace(value: Dp) {
     Spacer(Modifier.width(value))
+}
+
+// ---------- Bookmark heart toggle ----------
+
+/**
+ * A togglable heart that animates when switched on/off.
+ *
+ *  - Icon swaps between an outline heart (off, muted) and a filled gold heart (on),
+ *    crossfaded with a small scale so the fill "lands".
+ *  - On every toggle the whole heart does a spring pop (overshoot to ~1.3× then
+ *    settle) — stronger on turn-on than on turn-off — to confirm the tap.
+ *
+ * Self-contained: pass the current [bookmarked] state and an [onToggle] callback.
+ */
+@Composable
+fun BookmarkHeart(
+    bookmarked: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 22.dp
+) {
+    val scale = remember { Animatable(1f) }
+
+    // Pop whenever the bookmarked state flips (skips the initial composition).
+    LaunchedEffect(bookmarked) {
+        if (scale.value == 1f) {
+            val peak = if (bookmarked) 1.35f else 0.82f
+            scale.animateTo(
+                targetValue = peak,
+                animationSpec = tween(120)
+            )
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+        }
+    }
+
+    val tint by animateColorAsState(
+        targetValue = if (bookmarked) ConstructionColors.Gold else ConstructionColors.InkSoft,
+        animationSpec = tween(180),
+        label = "heartTint"
+    )
+
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier
+            .size(40.dp)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onToggle
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedContent(
+            targetState = bookmarked,
+            transitionSpec = {
+                (scaleIn(spring(stiffness = Spring.StiffnessMedium)) + fadeIn(tween(140)))
+                    .togetherWith(scaleOut(tween(120)) + fadeOut(tween(120)))
+            },
+            label = "heartIcon"
+        ) { on ->
+            Icon(
+                imageVector = if (on) ConstructionIcons.HeartFilled else ConstructionIcons.HeartOutline,
+                contentDescription = if (on) "북마크 해제" else "북마크",
+                tint = tint,
+                modifier = Modifier
+                    .size(size)
+                    .scale(scale.value)
+            )
+        }
+    }
 }

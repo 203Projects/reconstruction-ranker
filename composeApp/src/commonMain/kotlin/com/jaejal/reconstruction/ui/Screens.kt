@@ -59,6 +59,7 @@ import com.jaejal.reconstruction.data.District
 import com.jaejal.reconstruction.data.RankedDistrict
 import com.jaejal.reconstruction.data.Repository
 import com.jaejal.reconstruction.data.TypeInfo
+import com.jaejal.reconstruction.design.BookmarkHeart
 import com.jaejal.reconstruction.design.BottomNavItem
 import com.jaejal.reconstruction.design.ChipTone
 import com.jaejal.reconstruction.design.ConstructionBottomBar
@@ -84,16 +85,16 @@ import com.jaejal.reconstruction.format.Format
 private val NAV_ITEMS = listOf(
     BottomNavItem("home", "홈", ConstructionIcons.Home),
     BottomNavItem("districts", "단지", ConstructionIcons.Districts),
-    BottomNavItem("sims", "시뮬", ConstructionIcons.Sims),
+    BottomNavItem("bookmarks", "북마크", ConstructionIcons.HeartOutline),
     BottomNavItem("my", "마이", ConstructionIcons.My)
 )
 
 private fun Tab.toKey(): String = when (this) {
-    Tab.Home -> "home"; Tab.Districts -> "districts"; Tab.Sims -> "sims"; Tab.My -> "my"
+    Tab.Home -> "home"; Tab.Districts -> "districts"; Tab.Bookmarks -> "bookmarks"; Tab.My -> "my"
 }
 
 private fun keyToTab(k: String): Tab = when (k) {
-    "home" -> Tab.Home; "districts" -> Tab.Districts; "sims" -> Tab.Sims; "my" -> Tab.My; else -> Tab.Home
+    "home" -> Tab.Home; "districts" -> Tab.Districts; "bookmarks" -> Tab.Bookmarks; "my" -> Tab.My; else -> Tab.Home
 }
 
 @Composable
@@ -133,11 +134,13 @@ private fun AppShell(state: AppState) {
             }
         }
     ) { padding ->
+        // NOTE: we intentionally do NOT apply the status-bar inset here. Each root
+        // surface handles it itself so colored areas (the home hero, detail top bars)
+        // bleed under the status bar instead of leaving a band of background color.
         Box(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .windowInsetsPadding(WindowInsets.statusBars)
         ) {
             AnimatedContent(
                 targetState = state.currentTab to state.currentRoute,
@@ -157,7 +160,7 @@ private fun RouteContent(state: AppState, tab: Tab, route: Route) {
     when (route) {
         is Route.RankingList -> RankingScreen(state)
         is Route.DistrictList -> DistrictListScreen(state)
-        is Route.SimsHistory -> SimsHistoryScreen(state)
+        is Route.BookmarkList -> BookmarkListScreen(state)
         is Route.MyProfile -> MyScreen(state)
         is Route.TypeSelect -> {
             val d = state.findDistrict(route.districtName) ?: return
@@ -225,6 +228,8 @@ private fun DetailTopBar(
                         listOf(ConstructionColors.PaperAlt, ConstructionColors.Paper)
                     )
                 )
+                // Fill under the status bar, then pad content below it.
+                .windowInsetsPadding(WindowInsets.statusBars)
         ) {
             Column(Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -307,29 +312,31 @@ private fun RankingHero() {
                     listOf(ConstructionColors.NavyDeep, ConstructionColors.Navy)
                 )
             )
-            .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.xxl)
+            // Bleed the gradient under the status bar, then pad content below it.
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ConstructionLogo(size = 40.dp, onDark = true)
-                HSpace(Design.spacing.md)
+                ConstructionLogo(size = 32.dp, onDark = true)
+                HSpace(Design.spacing.sm)
                 Text(
                     "재건축 랭커",
-                    style = MaterialTheme.typography.displayLarge,
+                    style = MaterialTheme.typography.displaySmall,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            VSpace(6.dp)
+            VSpace(4.dp)
             Text(
                 "공개 고시문 기반 분담금 · 매도판단 시뮬레이터",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = ConstructionColors.NavyTint
             )
-            VSpace(Design.spacing.lg)
+            VSpace(Design.spacing.md)
             Row {
-                StatBadge("단지", "5"); HSpace(Design.spacing.md)
-                StatBadge("공개 예정", "2"); HSpace(Design.spacing.md)
+                StatBadge("단지", "5"); HSpace(Design.spacing.sm)
+                StatBadge("공개 예정", "2"); HSpace(Design.spacing.sm)
                 StatBadge("기준일", "2026-05")
             }
         }
@@ -471,7 +478,7 @@ private fun TypeSelectScreen(state: AppState, d: District) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Design.spacing.md)) {
                         row.forEach { t ->
                             Box(Modifier.weight(1f)) {
-                                TypeCard(district = d, type = t) { state.openType(d, t) }
+                                TypeCard(state = state, district = d, type = t) { state.openType(d, t) }
                             }
                         }
                         if (row.size == 1) Box(Modifier.weight(1f)) {}
@@ -483,32 +490,44 @@ private fun TypeSelectScreen(state: AppState, d: District) {
 }
 
 @Composable
-private fun TypeCard(district: District, type: TypeInfo, onClick: () -> Unit) {
+private fun TypeCard(state: AppState, district: District, type: TypeInfo, onClick: () -> Unit) {
     val result = Engine.calculate(district.base, type)
     val burdenTone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss
     val roiTone = if (result.roi >= 0) ChipTone.Gain else ChipTone.Loss
-    TrustCard(modifier = Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(Design.spacing.lg)) {
-        Column {
-            Text(
-                formatTypeLabel(district, type),
-                style = MaterialTheme.typography.titleLarge,
-                color = ConstructionColors.Ink,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                "분양 ${type.saleArea ?: "—"}",
-                style = MaterialTheme.typography.labelMedium,
-                color = ConstructionColors.InkMuted
-            )
-            VSpace(Design.spacing.md)
-            StatLine("KB시세", Format.eok(type.kbPrice), tone = ChipTone.Primary)
-            StatLine("분담금", Format.burdenWithRefund(result.burden), tone = burdenTone)
-            StatLine("기준 수익률", Format.percent(result.roi), tone = roiTone)
+    val bookmarked = state.isBookmarked(district, type)
+    Box {
+        TrustCard(modifier = Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(Design.spacing.lg)) {
+            Column {
+                // Reserve room on the right so the title never runs under the heart.
+                Text(
+                    formatTypeLabel(district, type),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = ConstructionColors.Ink,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(end = 28.dp)
+                )
+                Text(
+                    "분양 ${type.saleArea ?: "—"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ConstructionColors.InkMuted
+                )
+                VSpace(Design.spacing.md)
+                StatLine("KB시세", Format.eok(type.kbPrice), tone = ChipTone.Primary)
+                StatLine("분담금", Format.burdenWithRefund(result.burden), tone = burdenTone)
+                StatLine("기준 수익률", Format.percent(result.roi), tone = roiTone)
+            }
         }
+        BookmarkHeart(
+            bookmarked = bookmarked,
+            onToggle = { state.toggleBookmark(district, type) },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = Design.spacing.xs, top = Design.spacing.xs)
+        )
     }
 }
 
-private fun formatTypeLabel(d: District, t: TypeInfo): String {
+internal fun formatTypeLabel(d: District, t: TypeInfo): String {
     val raw = t.label
     return when {
         d.name.startsWith("압구정") -> if (raw.endsWith("A") || raw.endsWith("B")) "${raw}형" else "${raw}평"

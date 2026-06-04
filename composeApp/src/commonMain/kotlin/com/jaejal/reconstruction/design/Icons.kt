@@ -149,4 +149,35 @@ object ConstructionIcons {
                 moveTo(12f, 7f); lineTo(12f, 12f); lineTo(15.5f, 13.5f)
             }
         }
+
+    /** Heart silhouette path, shared by outline and filled variants. */
+    private fun Builder.heartPath(stroke: Boolean, fill: Boolean): Builder {
+        path(
+            stroke = if (stroke) SolidColor(Color.Black) else null,
+            strokeLineWidth = if (stroke) 1.8f else 0f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+            fill = if (fill) SolidColor(Color.Black) else null,
+            pathFillType = PathFillType.NonZero
+        ) {
+            // Two top lobes meeting at the dip (12, 6.4), down to the tip (12, 20.8).
+            moveTo(12f, 20.8f)
+            curveTo(12f, 20.8f, 3.2f, 14.8f, 3.2f, 8.6f)
+            curveTo(3.2f, 5.7f, 5.5f, 3.6f, 8.2f, 3.6f)
+            curveTo(10.0f, 3.6f, 11.3f, 4.7f, 12f, 6.4f)
+            curveTo(12.7f, 4.7f, 14.0f, 3.6f, 15.8f, 3.6f)
+            curveTo(18.5f, 3.6f, 20.8f, 5.7f, 20.8f, 8.6f)
+            curveTo(20.8f, 14.8f, 12f, 20.8f, 12f, 20.8f)
+            close()
+        }
+        return this
+    }
+
+    /** Outline heart — not-yet-saved state. */
+    val HeartOutline: ImageVector
+        get() = stroked("HeartOutline") { heartPath(stroke = true, fill = false) }
+
+    /** Filled heart — saved state. */
+    val HeartFilled: ImageVector
+        get() = stroked("HeartFilled") { heartPath(stroke = false, fill = true) }
 }

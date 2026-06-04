@@ -20,7 +20,7 @@ import com.jaejal.reconstruction.data.TypeInfo
 enum class Tab(val title: String) {
     Home("홈"),
     Districts("단지"),
-    Sims("시뮬"),
+    Bookmarks("북마크"),
     My("마이")
 }
 
@@ -31,7 +31,7 @@ sealed interface Route {
     /** Home / Districts default state — list view. */
     data object RankingList : Route                       // Home root
     data object DistrictList : Route                      // Districts root
-    data object SimsHistory : Route                       // Sims root
+    data object BookmarkList : Route                      // Bookmarks root
     data object MyProfile : Route                         // My root
 
     data class TypeSelect(val districtName: String) : Route
@@ -51,15 +51,6 @@ fun Route.hidesBottomNav(): Boolean = when (this) {
     else -> false
 }
 
-// ============ Sim history record ============
-
-data class SimRecord(
-    val districtName: String,
-    val typeLabel: String,
-    val question: Question,
-    val timestampMs: Long
-)
-
 // ============ State container ============
 
 class AppState {
@@ -71,13 +62,14 @@ class AppState {
     var loading by mutableStateOf(true)
     var loadError by mutableStateOf<String?>(null)
 
-    val simHistory: SnapshotStateList<SimRecord> = mutableStateListOf()
+    /** Saved 평형 store (in-memory; see [BookmarkStore]). */
+    val bookmarks: BookmarkStore = BookmarkStore(clock = { nowMs() })
 
     /** Per-tab back stack. The root route is always at index 0. */
     private val stacks: MutableMap<Tab, SnapshotStateList<Route>> = mutableStateMapOf<Tab, SnapshotStateList<Route>>().also {
         it[Tab.Home] = mutableStateListOf(Route.RankingList)
         it[Tab.Districts] = mutableStateListOf(Route.DistrictList)
-        it[Tab.Sims] = mutableStateListOf(Route.SimsHistory)
+        it[Tab.Bookmarks] = mutableStateListOf(Route.BookmarkList)
         it[Tab.My] = mutableStateListOf(Route.MyProfile)
     }
 
@@ -154,25 +146,22 @@ class AppState {
 
     private fun startSim(d: District, idx: Int, q: Question) {
         push(Route.Simulation(d.name, idx, q))
-        val t = d.types.getOrNull(idx) ?: return
-        // Record in history (most-recent-first, de-duped by (district,type,question) within 10 min)
-        val label = t.label
-        val now = nowMs()
-        val dupIdx = simHistory.indexOfFirst {
-            it.districtName == d.name && it.typeLabel == label && it.question == q
-        }
-        if (dupIdx >= 0) simHistory.removeAt(dupIdx)
-        simHistory.add(0, SimRecord(d.name, label, q, now))
-        if (simHistory.size > 20) simHistory.removeAt(simHistory.size - 1)
     }
 
-    /** From history list — re-enter the simulation directly. */
-    fun openHistory(rec: SimRecord) {
-        val d = findDistrict(rec.districtName) ?: return
-        val idx = d.types.indexOfFirst { it.label == rec.typeLabel }.takeIf { it >= 0 } ?: return
-        // Switch to Sims tab and push the simulation on its stack
-        currentTab = Tab.Sims
-        push(Route.Simulation(d.name, idx, rec.question))
+    // ----- Bookmarks -----
+
+    fun isBookmarked(d: District, t: TypeInfo): Boolean =
+        bookmarks.isBookmarked(d.name, t.label)
+
+    fun toggleBookmark(d: District, t: TypeInfo): Boolean =
+        bookmarks.toggle(d.name, t.label)
+
+    /** From the bookmark list — open that 평형's question-select screen. */
+    fun openBookmark(b: Bookmark) {
+        val d = findDistrict(b.districtName) ?: return
+        val idx = d.types.indexOfFirst { it.label == b.typeLabel }.takeIf { it >= 0 } ?: return
+        currentTab = Tab.Bookmarks
+        push(Route.QuestionSelect(d.name, idx))
     }
 }
 

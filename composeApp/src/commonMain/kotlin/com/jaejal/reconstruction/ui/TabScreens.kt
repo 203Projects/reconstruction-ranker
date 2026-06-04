@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -41,6 +44,8 @@ import com.jaejal.reconstruction.calc.Engine
 import com.jaejal.reconstruction.data.District
 import com.jaejal.reconstruction.data.RankedDistrict
 import com.jaejal.reconstruction.data.Repository
+import com.jaejal.reconstruction.data.TypeInfo
+import com.jaejal.reconstruction.design.BookmarkHeart
 import com.jaejal.reconstruction.design.ChipTone
 import com.jaejal.reconstruction.design.ConstructionColors
 import com.jaejal.reconstruction.design.ConstructionIcons
@@ -73,7 +78,12 @@ fun DistrictListScreen(state: AppState) {
         else all.filter { it.district.name.contains(query) || it.district.address.contains(query) }
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+    ) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -190,27 +200,33 @@ private fun DistrictListRow(rank: Int, ranked: RankedDistrict, onClick: () -> Un
     }
 }
 
-// ============= Sims tab — history =============
+// ============= Bookmarks tab — saved 평형 =============
 
 @Composable
-fun SimsHistoryScreen(state: AppState) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+fun BookmarkListScreen(state: AppState) {
+    val bookmarks = state.bookmarks.items
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+    ) {
         Column(
             Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
         ) {
-            Text("시뮬레이션", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
+            Text("북마크", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
             Text(
-                "최근에 살펴본 단지·평형 기록입니다",
+                "관심 표시한 단지·평형입니다",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ConstructionColors.InkSoft
             )
         }
         HairlineDivider()
 
-        if (state.simHistory.isEmpty()) {
+        if (bookmarks.isEmpty()) {
             EmptyState(
-                title = "아직 시뮬레이션 기록이 없습니다",
-                sub = "단지를 골라 분담금·매도판단 시뮬레이션을 시작해 보세요",
+                title = "아직 북마크한 평형이 없습니다",
+                sub = "단지 상세에서 평형 카드의 하트를 눌러 저장해 보세요",
                 ctaLabel = "단지 보기",
                 onCta = { state.selectTab(Tab.Districts) }
             )
@@ -219,47 +235,60 @@ fun SimsHistoryScreen(state: AppState) {
                 contentPadding = PaddingValues(horizontal = Design.spacing.gutter, vertical = Design.spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Design.spacing.sm)
             ) {
-                items(state.simHistory) { rec ->
-                    QuietCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { state.openHistory(rec) }
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                Modifier
-                                    .size(36.dp)
-                                    .background(ConstructionColors.NavyTint, RoundedCornerShape(Design.radii.pill)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = ConstructionIcons.Clock,
-                                    contentDescription = null,
-                                    tint = ConstructionColors.Navy,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            HSpace(Design.spacing.md)
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    "${rec.districtName} · ${rec.typeLabel}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = ConstructionColors.Ink,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    rec.question.short,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = ConstructionColors.InkSoft
-                                )
-                            }
-                            ToneChip(
-                                text = if (rec.question == Question.Q1) "Q1" else "Q2",
-                                tone = if (rec.question == Question.Q1) ChipTone.Primary else ChipTone.Gold
-                            )
-                        }
-                    }
+                items(bookmarks, key = { it.districtName + "|" + it.typeLabel }) { b ->
+                    val d = state.findDistrict(b.districtName)
+                    val t = d?.types?.firstOrNull { it.label == b.typeLabel }
+                    BookmarkRow(
+                        district = d,
+                        type = t,
+                        districtName = b.districtName,
+                        typeLabel = b.typeLabel,
+                        onOpen = { state.openBookmark(b) },
+                        onRemove = { if (d != null && t != null) state.toggleBookmark(d, t) }
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkRow(
+    district: District?,
+    type: TypeInfo?,
+    districtName: String,
+    typeLabel: String,
+    onOpen: () -> Unit,
+    onRemove: () -> Unit
+) {
+    // Key figures, when the source data is available (bookmarks are keyed by name,
+    // so a missing district just renders the saved label without numbers).
+    val roi = if (district != null && type != null) Engine.calculate(district.base, type).roi else null
+    val shownType = if (district != null && type != null) formatTypeLabel(district, type) else typeLabel
+    QuietCard(modifier = Modifier.fillMaxWidth(), onClick = onOpen) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "$districtName · $shownType",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ConstructionColors.Ink,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (roi != null) {
+                    Text(
+                        "기준 수익률 ${Format.percent(roi)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (roi >= 0) ConstructionColors.Gain else ConstructionColors.Loss
+                    )
+                } else {
+                    Text(
+                        "저장된 평형",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = ConstructionColors.InkSoft
+                    )
+                }
+            }
+            BookmarkHeart(bookmarked = true, onToggle = onRemove)
         }
     }
 }
@@ -268,7 +297,12 @@ fun SimsHistoryScreen(state: AppState) {
 
 @Composable
 fun MyScreen(state: AppState) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+    ) {
         Column(
             Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
         ) {
