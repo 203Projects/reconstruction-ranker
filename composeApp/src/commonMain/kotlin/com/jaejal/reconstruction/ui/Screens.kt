@@ -41,11 +41,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jaejal.reconstruction.calc.Engine
 import com.jaejal.reconstruction.data.District
@@ -211,85 +212,118 @@ private fun ErrorScreen(msg: String) {
     }
 }
 
-// ============= Top bar shared by detail screens =============
+// ============= Top app bars =============
 
+/**
+ * Compact top app bar height (content row), Material-style. The status-bar inset
+ * is consumed ONCE here so the title row sits immediately below the status bar —
+ * no stacked padding, uniform across every screen.
+ */
+private val TopBarHeight = 48.dp
+
+/**
+ * Detail-screen app bar: a fixed-height row with a leading back button, the title,
+ * and an optional compact breadcrumb/subtitle. Title + back are vertically centered
+ * in the bar (no empty band above), breadcrumb sits as a tight subtitle below.
+ */
 @Composable
 private fun DetailTopBar(
     title: String,
     breadcrumb: List<String>,
     onBack: () -> Unit
 ) {
-    val barShape = RoundedCornerShape(bottomStart = Design.radii.lg, bottomEnd = Design.radii.lg)
-    Column {
-        Box(
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(ConstructionColors.Paper)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = Design.spacing.sm)
+    ) {
+        Row(
             Modifier
                 .fillMaxWidth()
-                .shadow(
-                    elevation = 4.dp,
-                    shape = barShape,
-                    ambientColor = Color.Black.copy(alpha = 0.4f),
-                    spotColor = Color.Black.copy(alpha = 0.5f),
-                    clip = false
-                )
-                .clip(barShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(ConstructionColors.PaperAlt, ConstructionColors.Paper)
-                    )
-                )
-                // Fill under the status bar, then pad content below it.
-                .windowInsetsPadding(WindowInsets.statusBars)
+                .height(TopBarHeight),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Small top pad so the status-bar inset doesn't stack into a tall gap
-            // (same fix as RankingHero).
-            Column(
-                Modifier.padding(
-                    start = Design.spacing.gutter,
-                    end = Design.spacing.gutter,
-                    top = Design.spacing.sm,
-                    bottom = Design.spacing.md
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = ConstructionIcons.ArrowBack,
+                    contentDescription = "뒤로",
+                    tint = ConstructionColors.Ink,
+                    modifier = Modifier.size(22.dp)
                 )
+            }
+            HSpace(Design.spacing.xs)
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineMedium,
+                color = ConstructionColors.Ink,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        if (breadcrumb.isNotEmpty()) {
+            Row(
+                modifier = Modifier.padding(
+                    start = Design.spacing.lg,
+                    end = Design.spacing.sm,
+                    bottom = Design.spacing.sm
+                ),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        if (breadcrumb.isNotEmpty()) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                breadcrumb.forEachIndexed { i, p ->
-                                    if (i > 0) Text(
-                                        " · ",
-                                        color = ConstructionColors.InkMuted,
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                    Text(
-                                        p,
-                                        color = if (i == breadcrumb.lastIndex) ConstructionColors.Gold else ConstructionColors.InkSoft,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (i == breadcrumb.lastIndex) FontWeight.SemiBold else FontWeight.Medium
-                                    )
-                                }
-                            }
-                            VSpace(2.dp)
-                        }
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.displaySmall,
-                            color = ConstructionColors.Ink
-                        )
-                    }
-                    TextButton(onClick = onBack) {
-                        Icon(
-                            imageVector = ConstructionIcons.ArrowBack,
-                            contentDescription = "뒤로",
-                            tint = ConstructionColors.Ink,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        HSpace(6.dp)
-                        Text("뒤로", color = ConstructionColors.Ink, fontWeight = FontWeight.SemiBold)
-                    }
+                breadcrumb.forEachIndexed { i, p ->
+                    if (i > 0) Text(
+                        " · ",
+                        color = ConstructionColors.InkMuted,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        p,
+                        color = if (i == breadcrumb.lastIndex) ConstructionColors.Gold else ConstructionColors.InkSoft,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (i == breadcrumb.lastIndex) FontWeight.SemiBold else FontWeight.Medium
+                    )
                 }
             }
         }
+        HairlineDivider()
     }
+}
+
+/**
+ * Root-tab app bar: same fixed-height row + tight subtitle, no back button.
+ * Keeps top spacing identical to DetailTopBar so every screen lines up.
+ */
+@Composable
+internal fun TabTopBar(title: String, subtitle: String) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = Design.spacing.gutter,
+                end = Design.spacing.gutter,
+                top = Design.spacing.sm,
+                bottom = Design.spacing.sm
+            )
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineLarge,
+            color = ConstructionColors.Ink,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = ConstructionColors.InkSoft,
+            modifier = Modifier.padding(top = 2.dp)
+        )
+    }
+    HairlineDivider()
 }
 
 // ============= Home (curated ranking) =============

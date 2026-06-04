@@ -8,13 +8,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -51,7 +47,6 @@ import com.jaejal.reconstruction.design.ConstructionColors
 import com.jaejal.reconstruction.design.ConstructionIcons
 import com.jaejal.reconstruction.design.Design
 import com.jaejal.reconstruction.design.HSpace
-import com.jaejal.reconstruction.design.HairlineDivider
 import com.jaejal.reconstruction.design.QuietCard
 import com.jaejal.reconstruction.design.RankBadge
 import com.jaejal.reconstruction.design.SectionHeader
@@ -82,32 +77,19 @@ fun DistrictListScreen(state: AppState) {
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = Design.spacing.gutter,
-                    end = Design.spacing.gutter,
-                    top = Design.spacing.sm,
-                    bottom = Design.spacing.md
-                )
+        TabTopBar(
+            title = "단지",
+            subtitle = "${all.size}개 단지 + ${Repository.blurredDistricts.size}개 공개 예정"
+        )
+        Box(
+            Modifier.padding(
+                horizontal = Design.spacing.gutter,
+                vertical = Design.spacing.sm
+            )
         ) {
-            Text(
-                "단지",
-                style = MaterialTheme.typography.displaySmall,
-                color = ConstructionColors.Ink
-            )
-            Text(
-                "${all.size}개 단지 + ${Repository.blurredDistricts.size}개 공개 예정",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ConstructionColors.InkSoft
-            )
-            VSpace(Design.spacing.md)
             SearchField(query = query, onChange = { query = it })
         }
-        HairlineDivider()
         if (filtered.isEmpty()) {
             EmptyState(
                 title = "검색 결과가 없습니다",
@@ -216,24 +198,8 @@ fun BookmarkListScreen(state: AppState) {
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Column(
-            Modifier.padding(
-                start = Design.spacing.gutter,
-                end = Design.spacing.gutter,
-                top = Design.spacing.sm,
-                bottom = Design.spacing.md
-            )
-        ) {
-            Text("북마크", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
-            Text(
-                "관심 표시한 단지·평형입니다",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ConstructionColors.InkSoft
-            )
-        }
-        HairlineDivider()
+        TabTopBar(title = "북마크", subtitle = "관심 표시한 단지·평형입니다")
 
         if (bookmarks.isEmpty()) {
             EmptyState(
@@ -318,24 +284,8 @@ fun MyScreen(state: AppState) {
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Column(
-            Modifier.padding(
-                start = Design.spacing.gutter,
-                end = Design.spacing.gutter,
-                top = Design.spacing.sm,
-                bottom = Design.spacing.md
-            )
-        ) {
-            Text("마이", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
-            Text(
-                "이 서비스는 사용자 피드백으로 함께 만들어집니다",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ConstructionColors.InkSoft
-            )
-        }
-        HairlineDivider()
+        TabTopBar(title = "마이", subtitle = "이 서비스는 사용자 피드백으로 함께 만들어집니다")
         Column(
             Modifier
                 .fillMaxSize()
