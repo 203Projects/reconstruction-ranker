@@ -161,17 +161,19 @@ fun ConstructionSlider(
                             CircleShape
                         )
                 )
-                // small label chip
+                // small label chip — opaque dark pill so the slate label stays
+                // legible against the deep-navy background (transparent glass
+                // surfaces gave no contrast lift in dark mode).
                 Box(
                     Modifier
                         .offset(x = (xDp - 30.dp).coerceAtLeast(0.dp), y = 18.dp)
                         .background(
-                            ConstructionColors.SurfaceMuted,
+                            ConstructionColors.PaperAlt,
                             RoundedCornerShape(Design.radii.pill)
                         )
                         .border(
                             width = 1.dp,
-                            color = ConstructionColors.Hairline,
+                            color = ConstructionColors.Border,
                             shape = RoundedCornerShape(Design.radii.pill)
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -179,7 +181,7 @@ fun ConstructionSlider(
                     Text(
                         m.label,
                         style = MaterialTheme.typography.labelSmall,
-                        color = ConstructionColors.InkSoft
+                        color = ConstructionColors.Ink
                     )
                 }
             }
