@@ -313,8 +313,14 @@ private fun RankingHero() {
                 )
             )
             // Bleed the gradient under the status bar, then pad content below it.
+            // Keep the top pad small so the inset doesn't stack into a tall empty gap.
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
+            .padding(
+                start = Design.spacing.gutter,
+                end = Design.spacing.gutter,
+                top = Design.spacing.sm,
+                bottom = Design.spacing.lg
+            )
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
