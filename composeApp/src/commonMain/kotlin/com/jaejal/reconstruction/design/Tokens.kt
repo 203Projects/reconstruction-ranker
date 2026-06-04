@@ -35,11 +35,16 @@ object ConstructionColors {
     val InkMuted = Color(0xFF64748B)     // muted text (slate-500)
     val InkOnDark = Color(0xFFF8FAFC)    // Same as Ink
 
-    // Brand
+    // Brand.
+    // DARK-MODE PAIRING RULE: Navy/NavyDeep/NavySoft are dark blues — never use them as
+    // text/icon color or as a button container on the dark Paper background (they fail
+    // WCAG AA, ~1.5:1). On dark surfaces use Ink/InkStrong/InkSoft for text and Gold for
+    // accents/CTAs. NavyTint is a translucent navy BADGE surface only (e.g. RankBadge);
+    // pair it ONLY with light ink text, never with NavyDeep/Navy.
     val Navy = Color(0xFF1E3A8A)         // blue-900
     val NavyDeep = Color(0xFF172554)     // blue-950
     val NavySoft = Color(0xFF1E40AF)     // blue-800
-    val NavyTint = Color(0x1A1E3A8A)     // translucent tint
+    val NavyTint = Color(0x1A1E3A8A)     // translucent navy badge surface (light text only)
 
     // Accents
     val Copper = Color(0xFFD97706)       // amber-600

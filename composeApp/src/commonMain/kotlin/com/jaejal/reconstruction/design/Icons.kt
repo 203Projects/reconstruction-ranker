@@ -180,4 +180,90 @@ object ConstructionIcons {
     /** Filled heart — saved state. */
     val HeartFilled: ImageVector
         get() = stroked("HeartFilled") { heartPath(stroke = false, fill = true) }
+
+    /** Left chevron + shaft — back navigation. */
+    val ArrowBack: ImageVector
+        get() = stroked("ArrowBack") {
+            path(
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+                fill = null
+            ) {
+                moveTo(19f, 12f); lineTo(5f, 12f)
+                moveTo(11f, 6f); lineTo(5f, 12f); lineTo(11f, 18f)
+            }
+        }
+
+    /** Two-tower building silhouette — KB시세 / 종전자산 stat lines. */
+    val Building: ImageVector
+        get() = stroked("Building") {
+            path(
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+                fill = null
+            ) {
+                // left tower
+                moveTo(4f, 20.5f); lineTo(4f, 8f); lineTo(11f, 8f); lineTo(11f, 20.5f)
+                // right (taller) tower
+                moveTo(11f, 20.5f); lineTo(11f, 4f); lineTo(20f, 4f); lineTo(20f, 20.5f)
+                // baseline
+                moveTo(2.5f, 20.5f); lineTo(21.5f, 20.5f)
+            }
+            // windows
+            path(stroke = SolidColor(Color.Black), strokeLineWidth = 1.6f, strokeLineCap = StrokeCap.Round, fill = null) {
+                moveTo(7f, 11.5f); lineTo(7f, 12f)
+                moveTo(7f, 15.5f); lineTo(7f, 16f)
+                moveTo(15.5f, 8f); lineTo(15.5f, 8.5f)
+                moveTo(15.5f, 12f); lineTo(15.5f, 12.5f)
+                moveTo(15.5f, 16f); lineTo(15.5f, 16.5f)
+            }
+        }
+
+    /** Calculator outline — 분담금 / 권리가액 stat lines. */
+    val Calculator: ImageVector
+        get() = stroked("Calculator") {
+            path(
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+                fill = null
+            ) {
+                moveTo(5.5f, 3.5f); lineTo(18.5f, 3.5f); lineTo(18.5f, 20.5f); lineTo(5.5f, 20.5f); close()
+                // display
+                moveTo(8f, 7f); lineTo(16f, 7f)
+            }
+            // key dots
+            path(stroke = SolidColor(Color.Black), strokeLineWidth = 2.2f, strokeLineCap = StrokeCap.Round, fill = null) {
+                moveTo(8.5f, 11f); lineTo(8.51f, 11f)
+                moveTo(12f, 11f); lineTo(12.01f, 11f)
+                moveTo(15.5f, 11f); lineTo(15.51f, 11f)
+                moveTo(8.5f, 14.5f); lineTo(8.51f, 14.5f)
+                moveTo(12f, 14.5f); lineTo(12.01f, 14.5f)
+                moveTo(15.5f, 14.5f); lineTo(15.51f, 14.5f)
+                moveTo(8.5f, 18f); lineTo(8.51f, 18f)
+                moveTo(12f, 18f); lineTo(12.01f, 18f)
+                moveTo(15.5f, 18f); lineTo(15.51f, 18f)
+            }
+        }
+
+    /** Upward trend line + arrowhead — 기준 수익률 / 마진 stat lines. */
+    val TrendingUp: ImageVector
+        get() = stroked("TrendingUp") {
+            path(
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+                fill = null
+            ) {
+                moveTo(3.5f, 15.5f); lineTo(9f, 10f); lineTo(13f, 14f); lineTo(20.5f, 6.5f)
+                // arrowhead
+                moveTo(15.5f, 6.5f); lineTo(20.5f, 6.5f); lineTo(20.5f, 11.5f)
+            }
+        }
 }

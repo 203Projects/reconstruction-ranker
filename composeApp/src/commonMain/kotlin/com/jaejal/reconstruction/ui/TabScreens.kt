@@ -113,8 +113,10 @@ fun DistrictListScreen(state: AppState) {
                 contentPadding = PaddingValues(horizontal = Design.spacing.gutter, vertical = Design.spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Design.spacing.sm)
             ) {
-                itemsIndexed(filtered) { i, ranked ->
-                    DistrictListRow(rank = i + 1, ranked = ranked) { state.openDistrict(ranked.district) }
+                itemsIndexed(filtered, key = { _, ranked -> ranked.district.name }) { i, ranked ->
+                    Box(Modifier.animateItem()) {
+                        DistrictListRow(rank = i + 1, ranked = ranked) { state.openDistrict(ranked.district) }
+                    }
                 }
                 items(Repository.blurredDistricts) { b ->
                     QuietCard(modifier = Modifier.fillMaxWidth()) {
@@ -160,7 +162,7 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
                     value = query,
                     onValueChange = onChange,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = ConstructionColors.Ink),
-                    cursorBrush = SolidColor(ConstructionColors.Navy),
+                    cursorBrush = SolidColor(ConstructionColors.Gold),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -228,7 +230,8 @@ fun BookmarkListScreen(state: AppState) {
                 title = "아직 북마크한 평형이 없습니다",
                 sub = "단지 상세에서 평형 카드의 하트를 눌러 저장해 보세요",
                 ctaLabel = "단지 보기",
-                onCta = { state.selectTab(Tab.Districts) }
+                onCta = { state.selectTab(Tab.Districts) },
+                icon = ConstructionIcons.HeartOutline
             )
         } else {
             LazyColumn(
@@ -238,14 +241,16 @@ fun BookmarkListScreen(state: AppState) {
                 items(bookmarks, key = { it.districtName + "|" + it.typeLabel }) { b ->
                     val d = state.findDistrict(b.districtName)
                     val t = d?.types?.firstOrNull { it.label == b.typeLabel }
-                    BookmarkRow(
-                        district = d,
-                        type = t,
-                        districtName = b.districtName,
-                        typeLabel = b.typeLabel,
-                        onOpen = { state.openBookmark(b) },
-                        onRemove = { if (d != null && t != null) state.toggleBookmark(d, t) }
-                    )
+                    Box(Modifier.animateItem()) {
+                        BookmarkRow(
+                            district = d,
+                            type = t,
+                            districtName = b.districtName,
+                            typeLabel = b.typeLabel,
+                            onOpen = { state.openBookmark(b) },
+                            onRemove = { if (d != null && t != null) state.toggleBookmark(d, t) }
+                        )
+                    }
                 }
             }
         }
@@ -263,7 +268,9 @@ private fun BookmarkRow(
 ) {
     // Key figures, when the source data is available (bookmarks are keyed by name,
     // so a missing district just renders the saved label without numbers).
-    val roi = if (district != null && type != null) Engine.calculate(district.base, type).roi else null
+    val roi = remember(district, type) {
+        if (district != null && type != null) Engine.calculate(district.base, type).roi else null
+    }
     val shownType = if (district != null && type != null) formatTypeLabel(district, type) else typeLabel
     QuietCard(modifier = Modifier.fillMaxWidth(), onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,7 +346,7 @@ fun MyScreen(state: AppState) {
                             onClick = { /* stub */ },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ConstructionColors.NavyTint,
+                                containerColor = ConstructionColors.Gold,
                                 contentColor = ConstructionColors.NavyDeep
                             )
                         ) { Text("고쳐주세요", fontWeight = FontWeight.SemiBold) }
@@ -347,8 +354,8 @@ fun MyScreen(state: AppState) {
                             onClick = { /* stub */ },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ConstructionColors.CopperSoft,
-                                contentColor = ConstructionColors.Loss
+                                containerColor = ConstructionColors.NavyTint,
+                                contentColor = ConstructionColors.Ink
                             )
                         ) { Text("우리 단지도", fontWeight = FontWeight.SemiBold) }
                     }
@@ -411,7 +418,8 @@ fun EmptyState(
     title: String,
     sub: String,
     ctaLabel: String? = null,
-    onCta: (() -> Unit)? = null
+    onCta: (() -> Unit)? = null,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = ConstructionIcons.Clock
 ) {
     Column(
         Modifier
@@ -423,13 +431,13 @@ fun EmptyState(
         Box(
             Modifier
                 .size(72.dp)
-                .background(ConstructionColors.NavyTint, CircleShape),
+                .background(ConstructionColors.GoldSoft, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = ConstructionIcons.Clock,
+                imageVector = icon,
                 contentDescription = null,
-                tint = ConstructionColors.Navy,
+                tint = ConstructionColors.Gold,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -451,8 +459,11 @@ fun EmptyState(
             VSpace(Design.spacing.lg)
             Button(
                 onClick = onCta,
-                colors = ButtonDefaults.buttonColors(containerColor = ConstructionColors.Navy)
-            ) { Text(ctaLabel, color = Color.White, fontWeight = FontWeight.SemiBold) }
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ConstructionColors.Gold,
+                    contentColor = ConstructionColors.NavyDeep
+                )
+            ) { Text(ctaLabel, fontWeight = FontWeight.SemiBold) }
         }
     }
 }

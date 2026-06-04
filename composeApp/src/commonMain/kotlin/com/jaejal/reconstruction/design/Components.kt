@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,9 +38,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -212,12 +217,14 @@ fun StatLine(
     label: String,
     value: String,
     tone: ChipTone = ChipTone.Neutral,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
     val fg = when (tone) {
         ChipTone.Gain -> ConstructionColors.Gain
         ChipTone.Loss -> ConstructionColors.Loss
-        ChipTone.Primary -> ConstructionColors.Navy
+        // Primary values sit on glass cards; InkStrong reads cleanly on dark.
+        ChipTone.Primary -> ConstructionColors.InkStrong
         else -> ConstructionColors.Ink
     }
     Row(
@@ -228,7 +235,18 @@ fun StatLine(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = ConstructionColors.InkSoft, style = MaterialTheme.typography.bodyMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = ConstructionColors.InkMuted,
+                    modifier = Modifier.size(15.dp)
+                )
+                HSpace(Design.spacing.xs)
+            }
+            Text(label, color = ConstructionColors.InkSoft, style = MaterialTheme.typography.bodyMedium)
+        }
         Text(
             value,
             color = fg,
@@ -310,23 +328,26 @@ fun BookmarkHeart(
     size: Dp = 22.dp
 ) {
     val scale = remember { Animatable(1f) }
+    var firstComposition by remember { mutableStateOf(true) }
 
-    // Pop whenever the bookmarked state flips (skips the initial composition).
+    // Pop on every toggle. No `scale.value == 1f` guard: Compose cancels the prior
+    // animation when the key changes, and snapTo(1f) gives a clean restart, so a tap
+    // landing mid-spring still re-fires (rapid toggles no longer silently drop).
     LaunchedEffect(bookmarked) {
-        if (scale.value == 1f) {
-            val peak = if (bookmarked) 1.35f else 0.82f
-            scale.animateTo(
-                targetValue = peak,
-                animationSpec = tween(120)
-            )
-            scale.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
-            )
+        if (firstComposition) {
+            firstComposition = false
+            return@LaunchedEffect
         }
+        val peak = if (bookmarked) 1.35f else 0.82f
+        scale.snapTo(1f)
+        scale.animateTo(peak, animationSpec = tween(120))
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        )
     }
 
     val tint by animateColorAsState(
@@ -336,9 +357,17 @@ fun BookmarkHeart(
     )
 
     val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressBg by animateColorAsState(
+        targetValue = if (pressed) ConstructionColors.Gold.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = tween(120),
+        label = "heartPressBg"
+    )
     Box(
         modifier
             .size(40.dp)
+            .clip(CircleShape)
+            .background(pressBg)
             .clickable(
                 interactionSource = interaction,
                 indication = null,

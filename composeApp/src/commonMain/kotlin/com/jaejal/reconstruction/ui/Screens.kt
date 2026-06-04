@@ -2,9 +2,13 @@ package com.jaejal.reconstruction.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -17,6 +21,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,6 +40,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -145,7 +151,10 @@ private fun AppShell(state: AppState) {
             AnimatedContent(
                 targetState = state.currentTab to state.currentRoute,
                 transitionSpec = {
-                    fadeIn(tween(180)) togetherWith fadeOut(tween(120))
+                    // Subtle scale+fade — adds depth for the dark-glass look without
+                    // feeling cartoonish. Mirrors the BookmarkHeart enter/exit spec.
+                    (scaleIn(spring(stiffness = Spring.StiffnessMedium), initialScale = 0.96f) + fadeIn(tween(180)))
+                        .togetherWith(scaleOut(spring(stiffness = Spring.StiffnessMedium), targetScale = 0.96f) + fadeOut(tween(120)))
                 },
                 label = "route"
             ) { (tab, route) ->
@@ -184,7 +193,7 @@ private fun RouteContent(state: AppState, tab: Tab, route: Route) {
 private fun LoadingScreen() {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = ConstructionColors.Navy, strokeWidth = 2.dp)
+            CircularProgressIndicator(color = ConstructionColors.Gold, strokeWidth = 2.dp)
             VSpace(Design.spacing.md)
             Text("데이터를 불러오는 중입니다…", color = ConstructionColors.InkMuted)
         }
@@ -216,10 +225,10 @@ private fun DetailTopBar(
             Modifier
                 .fillMaxWidth()
                 .shadow(
-                    elevation = 3.dp,
+                    elevation = 4.dp,
                     shape = barShape,
-                    ambientColor = ConstructionColors.NavyDeep.copy(alpha = 0.05f),
-                    spotColor = ConstructionColors.NavyDeep.copy(alpha = 0.07f),
+                    ambientColor = Color.Black.copy(alpha = 0.4f),
+                    spotColor = Color.Black.copy(alpha = 0.5f),
                     clip = false
                 )
                 .clip(barShape)
@@ -231,7 +240,16 @@ private fun DetailTopBar(
                 // Fill under the status bar, then pad content below it.
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            Column(Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)) {
+            // Small top pad so the status-bar inset doesn't stack into a tall gap
+            // (same fix as RankingHero).
+            Column(
+                Modifier.padding(
+                    start = Design.spacing.gutter,
+                    end = Design.spacing.gutter,
+                    top = Design.spacing.sm,
+                    bottom = Design.spacing.md
+                )
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         if (breadcrumb.isNotEmpty()) {
@@ -244,7 +262,7 @@ private fun DetailTopBar(
                                     )
                                     Text(
                                         p,
-                                        color = if (i == breadcrumb.lastIndex) ConstructionColors.NavyDeep else ConstructionColors.InkSoft,
+                                        color = if (i == breadcrumb.lastIndex) ConstructionColors.Gold else ConstructionColors.InkSoft,
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (i == breadcrumb.lastIndex) FontWeight.SemiBold else FontWeight.Medium
                                     )
@@ -259,7 +277,14 @@ private fun DetailTopBar(
                         )
                     }
                     TextButton(onClick = onBack) {
-                        Text("← 뒤로", color = ConstructionColors.Navy, fontWeight = FontWeight.SemiBold)
+                        Icon(
+                            imageVector = ConstructionIcons.ArrowBack,
+                            contentDescription = "뒤로",
+                            tint = ConstructionColors.Ink,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        HSpace(6.dp)
+                        Text("뒤로", color = ConstructionColors.Ink, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -282,8 +307,15 @@ private fun RankingScreen(state: AppState) {
                 sub = "종전자산 최소 타입의 기준 수익률 기준 내림차순"
             )
         }
-        itemsIndexed(state.ranked) { i, ranked ->
-            Box(Modifier.padding(horizontal = Design.spacing.gutter, vertical = 6.dp)) {
+        itemsIndexed(
+            state.ranked,
+            key = { _, ranked -> ranked.district.name }
+        ) { i, ranked ->
+            Box(
+                Modifier
+                    .animateItem()
+                    .padding(horizontal = Design.spacing.gutter, vertical = 6.dp)
+            ) {
                 RankCard(rank = i + 1, ranked = ranked) { state.openDistrict(ranked.district) }
             }
         }
@@ -441,11 +473,13 @@ private fun TypeSelectScreen(state: AppState, d: District) {
             onBack = { state.pop() }
         )
         LazyColumn(
-            Modifier.fillMaxSize(),
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars),
             contentPadding = PaddingValues(
                 start = Design.spacing.gutter,
                 end = Design.spacing.gutter,
-                top = Design.spacing.md,
+                top = Design.spacing.sm,
                 bottom = Design.spacing.xxl
             ),
             verticalArrangement = Arrangement.spacedBy(Design.spacing.md)
@@ -468,7 +502,7 @@ private fun TypeSelectScreen(state: AppState, d: District) {
                             Text(
                                 phase,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = ConstructionColors.NavyDeep
+                                color = ConstructionColors.InkSoft
                             )
                             HSpace(Design.spacing.sm)
                             Box(
@@ -480,7 +514,10 @@ private fun TypeSelectScreen(state: AppState, d: District) {
                         }
                     }
                 }
-                items(types.chunked(2)) { row ->
+                items(
+                    types.chunked(2),
+                    key = { row -> row.joinToString("|") { it.index.toString() } }
+                ) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(Design.spacing.md)) {
                         row.forEach { t ->
                             Box(Modifier.weight(1f)) {
@@ -497,7 +534,7 @@ private fun TypeSelectScreen(state: AppState, d: District) {
 
 @Composable
 private fun TypeCard(state: AppState, district: District, type: TypeInfo, onClick: () -> Unit) {
-    val result = Engine.calculate(district.base, type)
+    val result = remember(district.base, type) { Engine.calculate(district.base, type) }
     val burdenTone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss
     val roiTone = if (result.roi >= 0) ChipTone.Gain else ChipTone.Loss
     val bookmarked = state.isBookmarked(district, type)
@@ -518,9 +555,9 @@ private fun TypeCard(state: AppState, district: District, type: TypeInfo, onClic
                     color = ConstructionColors.InkMuted
                 )
                 VSpace(Design.spacing.md)
-                StatLine("KB시세", Format.eok(type.kbPrice), tone = ChipTone.Primary)
-                StatLine("분담금", Format.burdenWithRefund(result.burden), tone = burdenTone)
-                StatLine("기준 수익률", Format.percent(result.roi), tone = roiTone)
+                StatLine("KB시세", Format.eok(type.kbPrice), tone = ChipTone.Primary, icon = ConstructionIcons.Building)
+                StatLine("분담금", Format.burdenWithRefund(result.burden), tone = burdenTone, icon = ConstructionIcons.Calculator)
+                StatLine("기준 수익률", Format.percent(result.roi), tone = roiTone, icon = ConstructionIcons.TrendingUp)
             }
         }
         BookmarkHeart(
@@ -553,6 +590,7 @@ private fun QuestionSelectScreen(state: AppState, d: District, t: TypeInfo) {
         Column(
             Modifier
                 .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(Design.spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Design.spacing.lg)
         ) {
@@ -594,10 +632,11 @@ private fun QuestionHeroCard(index: Int, title: String, sub: String, tone: ChipT
             VSpace(6.dp)
             Text(sub, style = MaterialTheme.typography.bodyMedium, color = ConstructionColors.InkSoft)
             VSpace(Design.spacing.md)
+            val ctaColor = if (tone == ChipTone.Primary) ConstructionColors.Ink else ConstructionColors.Gold
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("시작하기", style = MaterialTheme.typography.titleSmall, color = ConstructionColors.Navy, fontWeight = FontWeight.SemiBold)
+                Text("시작하기", style = MaterialTheme.typography.titleSmall, color = ctaColor, fontWeight = FontWeight.SemiBold)
                 HSpace(6.dp)
-                Text("→", color = ConstructionColors.Navy, fontWeight = FontWeight.Bold)
+                Text("→", color = ctaColor, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -630,6 +669,7 @@ private fun DisclaimerScreen(state: AppState) {
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(Design.spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Design.spacing.sm)
         ) {
@@ -638,15 +678,15 @@ private fun DisclaimerScreen(state: AppState) {
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(Design.radii.xl),
                 border = BorderStroke(1.dp, ConstructionColors.Border),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.Navy)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.Ink)
             ) { Text("뒤로") }
             Button(
                 onClick = { state.acceptDisclaimer() },
                 modifier = Modifier.weight(2f),
                 shape = RoundedCornerShape(Design.radii.xl),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ConstructionColors.Navy,
-                    contentColor = ConstructionColors.InkOnDark
+                    containerColor = ConstructionColors.Gold,
+                    contentColor = ConstructionColors.NavyDeep
                 )
             ) { Text("동의하고 계속합니다", fontWeight = FontWeight.SemiBold) }
         }
@@ -662,7 +702,7 @@ private fun DisclaimerSection(index: String, title: String, body: String) {
                 .background(ConstructionColors.NavyTint, RoundedCornerShape(Design.radii.pill)),
             contentAlignment = Alignment.Center
         ) {
-            Text(index, color = ConstructionColors.NavyDeep, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(index, color = ConstructionColors.InkSoft, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         }
         HSpace(Design.spacing.md)
         Column(Modifier.weight(1f)) {
@@ -787,9 +827,10 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
             Modifier
                 .weight(if (dense) 0.72f else 0.55f)
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)
         ) {
-            Text("변수를 움직여 보세요", style = MaterialTheme.typography.titleLarge, color = ConstructionColors.NavyDeep, fontWeight = FontWeight.SemiBold)
+            Text("변수를 움직여 보세요", style = MaterialTheme.typography.titleLarge, color = ConstructionColors.Ink, fontWeight = FontWeight.SemiBold)
             Text("기준 × 0.6 ~ 1.4 범위에서 즉시 반영됩니다", style = MaterialTheme.typography.bodySmall, color = ConstructionColors.InkMuted)
 
             ConstructionSlider(
@@ -857,8 +898,8 @@ private fun ActionRow(onReset: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Design.radii.xl),
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = ConstructionColors.NavyTint,
-            contentColor = ConstructionColors.NavyDeep
+            containerColor = ConstructionColors.GoldSoft,
+            contentColor = ConstructionColors.Gold
         )
     ) {
         Text("기본값으로", fontWeight = FontWeight.SemiBold)
