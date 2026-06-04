@@ -87,7 +87,12 @@ fun DistrictListScreen(state: AppState) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
+                .padding(
+                    start = Design.spacing.gutter,
+                    end = Design.spacing.gutter,
+                    top = Design.spacing.sm,
+                    bottom = Design.spacing.md
+                )
         ) {
             Text(
                 "단지",
@@ -214,7 +219,12 @@ fun BookmarkListScreen(state: AppState) {
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Column(
-            Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
+            Modifier.padding(
+                start = Design.spacing.gutter,
+                end = Design.spacing.gutter,
+                top = Design.spacing.sm,
+                bottom = Design.spacing.md
+            )
         ) {
             Text("북마크", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
             Text(
@@ -311,7 +321,12 @@ fun MyScreen(state: AppState) {
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Column(
-            Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
+            Modifier.padding(
+                start = Design.spacing.gutter,
+                end = Design.spacing.gutter,
+                top = Design.spacing.sm,
+                bottom = Design.spacing.md
+            )
         ) {
             Text("마이", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
             Text(
