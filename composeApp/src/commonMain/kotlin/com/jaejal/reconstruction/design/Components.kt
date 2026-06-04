@@ -54,10 +54,10 @@ fun TrustCard(
     val shape = RoundedCornerShape(Design.radii.xl)
     val baseMod = modifier
         .shadow(
-            elevation = if (emphasized) 8.dp else 3.dp,
+            elevation = if (emphasized) 12.dp else 4.dp,
             shape = shape,
-            ambientColor = ConstructionColors.NavyDeep.copy(alpha = 0.08f),
-            spotColor = ConstructionColors.NavyDeep.copy(alpha = 0.10f)
+            ambientColor = Color.Black.copy(alpha = 0.4f),
+            spotColor = Color.Black.copy(alpha = 0.6f)
         )
     val borderColor =
         if (emphasized) ConstructionColors.Gold.copy(alpha = 0.55f) else ConstructionColors.Hairline
@@ -104,7 +104,7 @@ fun ToneChip(
 ) {
     val (bg, fg) = when (tone) {
         ChipTone.Neutral -> ConstructionColors.Hairline to ConstructionColors.InkSoft
-        ChipTone.Primary -> ConstructionColors.NavyTint to ConstructionColors.NavyDeep
+        ChipTone.Primary -> ConstructionColors.NavyTint to ConstructionColors.InkStrong
         ChipTone.Gold -> ConstructionColors.GoldSoft to ConstructionColors.Gold
         ChipTone.Gain -> ConstructionColors.GainSoft to ConstructionColors.Gain
         ChipTone.Loss -> ConstructionColors.LossSoft to ConstructionColors.Loss
@@ -127,13 +127,19 @@ fun ToneChip(
 @Composable
 fun RankBadge(position: Int, modifier: Modifier = Modifier) {
     val gold = position == 1
-    val bg = if (gold) ConstructionColors.GoldSoft else ConstructionColors.NavyTint
-    val borderColor = if (gold) ConstructionColors.Gold else ConstructionColors.NavySoft.copy(alpha = 0.5f)
-    val fg = if (gold) ConstructionColors.Gold else ConstructionColors.Navy
+    val bg = if (gold) ConstructionColors.Copper else ConstructionColors.NavyTint
+    val borderColor = if (gold) ConstructionColors.Gold else ConstructionColors.Hairline
+    val fg = if (gold) ConstructionColors.InkStrong else ConstructionColors.InkSoft
     val shape = RoundedCornerShape(Design.radii.pill)
     Box(
         modifier
             .size(40.dp)
+            .shadow(
+                elevation = if (gold) 6.dp else 0.dp,
+                shape = shape,
+                ambientColor = ConstructionColors.Gold.copy(alpha = 0.5f),
+                spotColor = ConstructionColors.Gold.copy(alpha = 0.8f)
+            )
             .background(bg, shape)
             .border(BorderStroke(1.dp, borderColor), shape),
         contentAlignment = Alignment.Center

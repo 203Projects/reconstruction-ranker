@@ -19,42 +19,42 @@ import androidx.compose.ui.unit.TextUnit
  * All values chosen to clear WCAG AA on the chosen surfaces.
  */
 object ConstructionColors {
-    // Surfaces
-    val Paper = Color(0xFFF8F5EE)        // app background, warmer than #F7F4ED
-    val PaperAlt = Color(0xFFEFE9DC)     // muted section background
-    val Surface = Color(0xFFFFFFFF)
-    val SurfaceMuted = Color(0xFFFBF8F0)
-    val SurfaceSunken = Color(0xFFF1EBDC) // input/track tone
-    val Hairline = Color(0xFFEAE3D2)
-    val Border = Color(0xFFD8CFB8)
+    // Surfaces (Dark Mode & Glassmorphism)
+    val Paper = Color(0xFF0B0F19)        // app background, deep navy/indigo
+    val PaperAlt = Color(0xFF070A11)     // darker section background
+    val Surface = Color(0x08FFFFFF)      // rgba(255, 255, 255, 0.03) - glass panel
+    val SurfaceMuted = Color(0x04FFFFFF) // subtle
+    val SurfaceSunken = Color(0x0AFFFFFF)// input/track tone
+    val Hairline = Color(0x14FFFFFF)     // rgba(255, 255, 255, 0.08)
+    val Border = Color(0x28FFFFFF)       // slightly stronger border
 
-    // Ink
-    val Ink = Color(0xFF14181F)          // near-black
-    val InkStrong = Color(0xFF1F2937)
-    val InkSoft = Color(0xFF52606D)
-    val InkMuted = Color(0xFF8B8676)
-    val InkOnDark = Color(0xFFF7F4EC)
+    // Ink (Light Text for Dark Mode)
+    val Ink = Color(0xFFF8FAFC)          // primary text (slate-50)
+    val InkStrong = Color(0xFFFFFFFF)    // white
+    val InkSoft = Color(0xFF94A3B8)      // secondary text (slate-400)
+    val InkMuted = Color(0xFF64748B)     // muted text (slate-500)
+    val InkOnDark = Color(0xFFF8FAFC)    // Same as Ink
 
     // Brand
-    val Navy = Color(0xFF1B3556)         // primary action / brand
-    val NavyDeep = Color(0xFF0F2238)
-    val NavySoft = Color(0xFF2F5278)
-    val NavyTint = Color(0xFFE3EAF3)     // primary container tint
+    val Navy = Color(0xFF1E3A8A)         // blue-900
+    val NavyDeep = Color(0xFF172554)     // blue-950
+    val NavySoft = Color(0xFF1E40AF)     // blue-800
+    val NavyTint = Color(0x1A1E3A8A)     // translucent tint
 
     // Accents
-    val Copper = Color(0xFFB05B2C)       // construction accent (steel beams at dusk)
-    val CopperSoft = Color(0xFFE9CFB7)
-    val Gold = Color(0xFFA8801A)         // rank #1 / award
-    val GoldSoft = Color(0xFFEFE0B0)
+    val Copper = Color(0xFFD97706)       // amber-600
+    val CopperSoft = Color(0x1AD97706)
+    val Gold = Color(0xFFFBBF24)         // amber-400, rank #1 / award / active state
+    val GoldSoft = Color(0x1AFBBF24)     // transparent glow
 
     // Semantic
-    val Gain = Color(0xFF0E6B3E)
-    val GainSoft = Color(0xFFD2EBDD)
-    val Loss = Color(0xFFA0431C)
-    val LossSoft = Color(0xFFF4DBC9)
+    val Gain = Color(0xFF10B981)         // emerald-500
+    val GainSoft = Color(0x1A10B981)
+    val Loss = Color(0xFFF43F5E)         // rose-500
+    val LossSoft = Color(0x1AF43F5E)
 
     // Map / blurred
-    val MapMist = Color(0xFFE6DFCE)
+    val MapMist = Color(0xFF1E293B)      // slate-800
 }
 
 /** Compact spacing scale (4dp baseline). */

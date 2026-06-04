@@ -23,6 +23,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.shadow
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,13 +73,13 @@ fun ConstructionSlider(
             // value pill
             Box(
                 Modifier
-                    .background(ConstructionColors.NavyTint, RoundedCornerShape(Design.radii.pill))
+                    .background(ConstructionColors.GoldSoft, RoundedCornerShape(Design.radii.pill))
                     .padding(horizontal = Design.spacing.md, vertical = 4.dp)
             ) {
                 Text(
                     valueDisplay,
                     style = MaterialTheme.typography.titleMedium,
-                    color = ConstructionColors.NavyDeep,
+                    color = ConstructionColors.Gold,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -89,8 +90,8 @@ fun ConstructionSlider(
         // custom thumb and track slots. Track is thickened to 8dp with fully
         // rounded caps (stop indicators removed) for a softer, more confident feel.
         val sliderColors = SliderDefaults.colors(
-            thumbColor = ConstructionColors.Navy,
-            activeTrackColor = ConstructionColors.Navy,
+            thumbColor = ConstructionColors.InkStrong,
+            activeTrackColor = ConstructionColors.Gold,
             inactiveTrackColor = ConstructionColors.Hairline,
             activeTickColor = Color.Transparent,
             inactiveTickColor = Color.Transparent
@@ -106,10 +107,17 @@ fun ConstructionSlider(
             colors = sliderColors,
             modifier = Modifier.fillMaxWidth(),
             thumb = {
-                SliderDefaults.Thumb(
-                    interactionSource = thumbInteractionSource,
-                    colors = sliderColors,
-                    thumbSize = DpSize(thumbDiameter, thumbDiameter)
+                Box(
+                    Modifier
+                        .size(thumbDiameter)
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = CircleShape,
+                            ambientColor = ConstructionColors.Gold,
+                            spotColor = ConstructionColors.Gold
+                        )
+                        .background(ConstructionColors.InkStrong, CircleShape)
+                        .border(1.dp, ConstructionColors.Hairline, CircleShape)
                 )
             },
             track = { sliderState ->
@@ -149,7 +157,7 @@ fun ConstructionSlider(
                         .offset(x = xDp - 4.dp, y = 6.dp)
                         .size(8.dp)
                         .background(
-                            if (isClipped) ConstructionColors.InkMuted else ConstructionColors.Copper,
+                            if (isClipped) ConstructionColors.InkMuted else ConstructionColors.Gold,
                             CircleShape
                         )
                 )

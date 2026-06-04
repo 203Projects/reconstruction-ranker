@@ -64,10 +64,10 @@ fun ConstructionBottomBar(
         modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
+                elevation = 16.dp,
                 shape = barShape,
-                ambientColor = ConstructionColors.NavyDeep.copy(alpha = 0.06f),
-                spotColor = ConstructionColors.NavyDeep.copy(alpha = 0.08f),
+                ambientColor = Color.Black.copy(alpha = 0.4f),
+                spotColor = Color.Black.copy(alpha = 0.5f),
                 clip = false
             )
             .clip(barShape)
@@ -103,17 +103,17 @@ private fun BottomNavCell(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val iconColor by animateColorAsState(
-        targetValue = if (selected) ConstructionColors.Navy else ConstructionColors.InkSoft,
+        targetValue = if (selected) ConstructionColors.Gold else ConstructionColors.InkSoft,
         animationSpec = tween(180),
         label = "iconColor"
     )
     val labelColor by animateColorAsState(
-        targetValue = if (selected) ConstructionColors.NavyDeep else ConstructionColors.InkMuted,
+        targetValue = if (selected) ConstructionColors.Gold else ConstructionColors.InkMuted,
         animationSpec = tween(180),
         label = "labelColor"
     )
     val pillBg by animateColorAsState(
-        targetValue = if (selected) ConstructionColors.NavyTint else Color.Transparent,
+        targetValue = if (selected) ConstructionColors.GoldSoft else Color.Transparent,
         animationSpec = tween(180),
         label = "pillBg"
     )

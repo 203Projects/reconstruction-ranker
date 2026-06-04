@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>재건축 랭커 - Premium UI/UX 제안</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg-dark: #0B0F19;
+        --panel-bg: rgba(255, 255, 255, 0.03);
+        --panel-border: rgba(255, 255, 255, 0.08);
+        --text-primary: #F8FAFC;
+        --text-secondary: #94A3B8;
+        --accent-gold: #FBBF24;
+        --accent-gold-glow: rgba(251, 191, 36, 0.3);
+        --accent-navy: #1E3A8A;
+        --emerald: #10B981;
+        --rose: #F43F5E;
+    }
+    
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background-color: var(--bg-dark);
+        color: var(--text-primary);
+        font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+        line-height: 1.5;
+        overflow-x: hidden;
+        background-image: 
+            radial-gradient(circle at 0% 0%, rgba(30, 58, 138, 0.15), transparent 40%),
+            radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.08), transparent 40%);
+        background-attachment: fixed;
+    }
+
+    .device-container {
+        max-width: 480px;
+        margin: 40px auto;
+        background: rgba(11, 15, 25, 0.6);
+        border: 1px solid var(--panel-border);
+        border-radius: 40px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        position: relative;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        min-height: 850px;
+    }
+
+    header {
+        padding: 24px 24px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--panel-border);
+        background: rgba(11, 15, 25, 0.8);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, var(--accent-gold), #D97706);
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #000;
+        font-size: 14px;
+        box-shadow: 0 4px 12px var(--accent-gold-glow);
+    }
+
+    .brand-name {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+
+    .breadcrumb {
+        padding: 16px 24px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .breadcrumb span.active {
+        color: var(--accent-gold);
+        font-weight: 500;
+    }
+
+    .main-content {
+        padding: 0 24px 100px;
+    }
+
+    .screen {
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .screen.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 20px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .glass-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    }
+
+    .interactive-card {
+        cursor: pointer;
+    }
+
+    .interactive-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Ranking Screen */
+    .ranking-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+    }
+
+    .rank-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-family: 'Outfit', sans-serif;
+        font-size: 16px;
+        background: rgba(255,255,255,0.05);
+        color: var(--text-secondary);
+    }
+
+    .rank-1 {
+        background: linear-gradient(135deg, var(--accent-gold), #D97706);
+        color: #000;
+        box-shadow: 0 4px 12px var(--accent-gold-glow);
+    }
+
+    .ranking-info {
+        flex: 1;
+    }
+
+    .ranking-name {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .ranking-address {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .ranking-roi {
+        font-size: 20px;
+        font-weight: 700;
+        font-family: 'Outfit', sans-serif;
+        color: var(--emerald);
+    }
+
+    .blurred-item {
+        opacity: 0.5;
+        filter: blur(2px);
+        pointer-events: none;
+    }
+
+    /* Type Selection */
+    .type-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .type-card {
+        padding: 20px 16px;
+        text-align: center;
+    }
+
+    .type-name {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .type-price {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    /* Question Selection */
+    .question-card {
+        padding: 32px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+        text-align: center;
+    }
+
+    .q-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: rgba(251, 191, 36, 0.1);
+        display: grid;
+        place-items: center;
+        color: var(--accent-gold);
+        margin-bottom: 8px;
+    }
+
+    .q-title {
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .q-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+
+    /* Disclaimer */
+    .disclaimer-box {
+        max-height: 400px;
+        overflow-y: auto;
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .disclaimer-box p {
+        margin-bottom: 12px;
+    }
+
+    .disclaimer-box h4 {
+        color: var(--text-primary);
+        margin: 20px 0 8px;
+    }
+
+    .btn-primary {
+        width: 100%;
+        padding: 16px;
+        border-radius: 16px;
+        border: none;
+        background: linear-gradient(135deg, var(--accent-gold), #D97706);
+        color: #000;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 20px var(--accent-gold-glow);
+        transition: transform 0.2s;
+    }
+
+    .btn-primary:active {
+        transform: scale(0.98);
+    }
+
+    /* Simulation Results */
+    .result-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .result-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .result-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .result-value {
+        font-size: 24px;
+        font-weight: 700;
+        font-family: 'Outfit', sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    .result-value.gain { color: var(--emerald); }
+    .result-value.loss { color: var(--rose); }
+
+    .highlight-card {
+        background: linear-gradient(180deg, rgba(251, 191, 36, 0.05) 0%, rgba(251, 191, 36, 0) 100%);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .highlight-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+    }
+
+    .roi-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .roi-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--accent-gold);
+        text-shadow: 0 0 20px var(--accent-gold-glow);
+    }
+
+    /* Sliders */
+    .slider-group {
+        margin-bottom: 28px;
+    }
+
+    .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 12px;
+    }
+
+    .slider-label {
+        font-size: 14px;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .slider-value {
+        font-size: 16px;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        color: var(--accent-gold);
+    }
+
+    .slider-wrapper {
+        position: relative;
+        padding: 10px 0;
+    }
+
+    .modern-slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        outline: none;
+    }
+
+    .modern-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--text-primary);
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        transition: transform 0.2s, background 0.2s;
+    }
+
+    .modern-slider::-webkit-slider-thumb:hover, .modern-slider:active::-webkit-slider-thumb {
+        transform: scale(1.3);
+        background: var(--accent-gold);
+        box-shadow: 0 0 15px var(--accent-gold-glow);
+    }
+
+    .marker-track {
+        position: absolute;
+        top: 20px;
+        left: 10px;
+        right: 10px;
+        height: 10px;
+        pointer-events: none;
+    }
+
+    .marker {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: var(--text-secondary);
+        border-radius: 50%;
+        transform: translateX(-50%);
+        top: 2px;
+        transition: all 0.3s;
+        pointer-events: auto;
+    }
+    
+    .marker::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 10px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .marker:hover::after {
+        opacity: 1;
+        color: var(--accent-gold);
+    }
+
+    .bottom-nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: rgba(11, 15, 25, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--panel-border);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding-bottom: 20px;
+    }
+
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .nav-item.active {
+        color: var(--accent-gold);
+    }
+
+    .nav-icon {
+        width: 24px;
+        height: 24px;
+        background: currentColor;
+        mask-size: cover;
+        -webkit-mask-size: cover;
+    }
+
+    .icon-home { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>'); }
+    .icon-building { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>'); }
+    .icon-sim { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2zm4 5h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>'); }
+    .icon-user { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'); }
+
+    .tag {
+        display: inline-block;
+        padding: 4px 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+</style>
+</head>
+<body>
+
+<div class="device-container">
+    <header>
+        <div class="brand">
+            <div class="brand-icon">재</div>
+            <div class="brand-name">재건축 랭커</div>
+        </div>
+        <div class="tag">BETA</div>
+    </header>
+
+    <!-- Navigation Breadcrumb -->
+    <div class="breadcrumb" id="global-breadcrumb">
+        <span class="active">홈</span>
+    </div>
+
+    <main class="main-content">
+        <!-- SCREEN 1: RANKING -->
+        <div id="screen-home" class="screen active">
+            <div class="section-title">투자가치 랭킹</div>
+            
+            <div class="glass-card interactive-card ranking-item" onclick="navTo('screen-type', '신반포2차')">
+                <div class="rank-badge rank-1">1</div>
+                <div class="ranking-info">
+                    <div class="ranking-name">신반포2차</div>
+                    <div class="ranking-address">서초구 잠원동</div>
+                </div>
+                <div class="ranking-roi">47.8%</div>
+            </div>
+            
+            <div class="glass-card interactive-card ranking-item" onclick="navTo('screen-type', '여의도시범')">
+                <div class="rank-badge">2</div>
+                <div class="ranking-info">
+                    <div class="ranking-name">여의도 시범</div>
+                    <div class="ranking-address">영등포구 여의도동</div>
+                </div>
+                <div class="ranking-roi">41.7%</div>
+            </div>
+
+            <div class="glass-card interactive-card ranking-item" onclick="navTo('screen-type', '압구정3구역')">
+                <div class="rank-badge">3</div>
+                <div class="ranking-info">
+                    <div class="ranking-name">압구정3구역</div>
+                    <div class="ranking-address">강남구 압구정동</div>
+                </div>
+                <div class="ranking-roi">26.1%</div>
+            </div>
+
+            <div class="glass-card ranking-item blurred-item">
+                <div class="rank-badge">4</div>
+                <div class="ranking-info">
+                    <div class="ranking-name">서빙고 신동아</div>
+                    <div class="ranking-address">용산구 서빙고동</div>
+                </div>
+                <div class="ranking-roi">--.-%</div>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: TYPE SELECTION -->
+        <div id="screen-type" class="screen">
+            <div class="section-title">보유하신 평형을 선택하세요</div>
+            
+            <div class="type-grid">
+                <div class="glass-card interactive-card type-card" onclick="navTo('screen-question')">
+                    <div class="type-name">전용 68.91㎡</div>
+                    <div class="type-price">KB 41.0억</div>
+                </div>
+                <div class="glass-card interactive-card type-card" onclick="navTo('screen-question')">
+                    <div class="type-name">전용 79.42㎡</div>
+                    <div class="type-price">KB 45.0억</div>
+                </div>
+                <div class="glass-card interactive-card type-card" onclick="navTo('screen-question')">
+                    <div class="type-name">전용 92.20㎡</div>
+                    <div class="type-price">KB 50.0억</div>
+                </div>
+                <div class="glass-card interactive-card type-card" onclick="navTo('screen-question')">
+                    <div class="type-name">전용 107.89㎡</div>
+                    <div class="type-price">KB 58.0억</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: QUESTION SELECTION -->
+        <div id="screen-question" class="screen">
+            <div class="section-title">무엇이 궁금하신가요?</div>
+            
+            <div class="glass-card interactive-card question-card" onclick="navTo('screen-disclaimer')">
+                <div class="q-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div class="q-title">얼마 더 내야 하나?</div>
+                <div class="q-desc">총 분담금 혹은 환급금을 확인합니다</div>
+            </div>
+            
+            <div class="glass-card interactive-card question-card" onclick="navTo('screen-disclaimer')">
+                <div class="q-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </div>
+                <div class="q-title">지금 팔아야 하나?</div>
+                <div class="q-desc">총 투자금 대비 예상 수익률(ROI)을 확인합니다</div>
+            </div>
+        </div>
+
+        <!-- SCREEN 4: DISCLAIMER -->
+        <div id="screen-disclaimer" class="screen">
+            <div class="section-title">시뮬레이션 전 확인사항</div>
+            
+            <div class="glass-card disclaimer-box">
+                <h4>1. 본 결과는 추정치입니다</h4>
+                <p>본 서비스의 계산 결과는 각 단지의 최신 공개 고시문(정비계획안 등)을 바탕으로 도출된 추정치일 뿐, 실제 부과될 분담금이나 완공 후의 시세를 보장하지 않습니다.</p>
+                
+                <h4>2. 변동 가능성</h4>
+                <p>일반분양가, 공사비, 금융비용 등은 향후 부동산 시장 상황 및 조합의 사업 진행 경과에 따라 크게 변동될 수 있습니다.</p>
+                
+                <h4>3. 면책 조항</h4>
+                <p>사용자는 본 결과를 참고용으로만 활용해야 하며, 이를 바탕으로 한 투자 및 거래 결과에 대해 본 서비스는 일체의 법적 책임을 지지 않습니다.</p>
+            </div>
+            
+            <button class="btn-primary" onclick="navTo('screen-sim')">동의하고 계속합니다</button>
+        </div>
+
+        <!-- SCREEN 5: SIMULATION (Q2) -->
+        <div id="screen-sim" class="screen">
+            <!-- Results -->
+            <div class="glass-card highlight-card">
+                <div class="roi-container">
+                    <div>
+                        <div class="result-label" style="color: rgba(255,255,255,0.7);">예상 투자 수익률 (ROI)</div>
+                        <div class="roi-value" id="roi-value">47.86%</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="result-label">마진</div>
+                        <div class="result-value gain" id="margin-value">+ 24.3억</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card result-grid">
+                <div class="result-item">
+                    <div class="result-label">예상 분담금</div>
+                    <div class="result-value loss" id="burden-value">9.83억</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">총 투자금</div>
+                    <div class="result-value" id="invest-value">50.83억</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">현재 KB시세</div>
+                    <div class="result-value" style="font-size: 18px;">41.00억</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">신축 예상가</div>
+                    <div class="result-value" style="font-size: 18px;">75.15억</div>
+                </div>
+            </div>
+
+            <!-- Sliders -->
+            <div class="sliders-section">
+                <div class="section-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                    변수 시뮬레이션
+                </div>
+
+                <!-- T Slider -->
+                <div class="glass-card">
+                    <div class="slider-group" style="margin-bottom: 0;">
+                        <div class="slider-header">
+                            <div class="slider-label">평당 공사비</div>
+                            <div class="slider-value" id="val-t">900 만원</div>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="modern-slider" id="slider-t" min="0.6" max="1.4" step="0.01" value="1.0">
+                            <div class="marker-track">
+                                <div class="marker" style="left: 20%;" data-tooltip="여의도시범"></div>
+                                <div class="marker" style="left: 80%;" data-tooltip="압구정3구역"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- L Slider -->
+                <div class="glass-card">
+                    <div class="slider-group" style="margin-bottom: 0;">
+                        <div class="slider-header">
+                            <div class="slider-label">조합 분양가 (국평)</div>
+                            <div class="slider-value" id="val-l">6,400 만원</div>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="modern-slider" id="slider-l" min="0.6" max="1.4" step="0.01" value="1.0">
+                            <div class="marker-track">
+                                <div class="marker" style="left: 40%;" data-tooltip="대치은마"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- J Slider -->
+                <div class="glass-card">
+                    <div class="slider-group" style="margin-bottom: 0;">
+                        <div class="slider-header">
+                            <div class="slider-label">일반 분양가 (국평)</div>
+                            <div class="slider-value" id="val-j">7,800 만원</div>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" class="modern-slider" id="slider-j" min="0.6" max="1.4" step="0.01" value="1.0">
+                            <div class="marker-track">
+                                <div class="marker" style="left: 60%;" data-tooltip="목동6단지"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" id="nav-home" onclick="navTo('screen-home', '홈')">
+            <div class="nav-icon icon-home"></div>
+            <span>홈</span>
+        </div>
+        <div class="nav-item" id="nav-sim" onclick="navTo('screen-sim', '시뮬레이션')">
+            <div class="nav-icon icon-sim"></div>
+            <span>시뮬</span>
+        </div>
+        <div class="nav-item" onclick="alert('준비중입니다.')">
+            <div class="nav-icon icon-building"></div>
+            <span>단지</span>
+        </div>
+        <div class="nav-item" onclick="alert('준비중입니다.')">
+            <div class="nav-icon icon-user"></div>
+            <span>마이</span>
+        </div>
+    </nav>
+</div>
+
+<script>
+    const breadcrumb = document.getElementById('global-breadcrumb');
+    
+    // Navigation Logic
+    function navTo(screenId, title) {
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        
+        // Update Bottom Nav active state based on screen
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        if(screenId === 'screen-home') {
+            document.getElementById('nav-home').classList.add('active');
+        } else if (screenId === 'screen-sim') {
+            document.getElementById('nav-sim').classList.add('active');
+        }
+
+        // Update breadcrumbs
+        if(screenId === 'screen-home') {
+            breadcrumb.innerHTML = `<span class="active">홈</span>`;
+        } else if(screenId === 'screen-type') {
+            breadcrumb.innerHTML = `
+                <span onclick="navTo('screen-home')" style="cursor:pointer">홈</span>
+                <span style="opacity: 0.5;">›</span>
+                <span class="active">${title || '신반포2차'}</span>
+            `;
+        } else if(screenId === 'screen-question') {
+            breadcrumb.innerHTML = `
+                <span onclick="navTo('screen-home')" style="cursor:pointer">홈</span>
+                <span style="opacity: 0.5;">›</span>
+                <span onclick="navTo('screen-type')" style="cursor:pointer">신반포2차</span>
+                <span style="opacity: 0.5;">›</span>
+                <span class="active">질문선택</span>
+            `;
+        } else if(screenId === 'screen-disclaimer') {
+            breadcrumb.innerHTML = `
+                <span onclick="navTo('screen-type')" style="cursor:pointer">신반포2차</span>
+                <span style="opacity: 0.5;">›</span>
+                <span class="active">약관동의</span>
+            `;
+        } else if(screenId === 'screen-sim') {
+            breadcrumb.innerHTML = `
+                <span onclick="navTo('screen-type')" style="cursor:pointer">신반포2차</span>
+                <span style="opacity: 0.5;">›</span>
+                <span class="active">시뮬레이션</span>
+            `;
+        }
+        
+        window.scrollTo(0, 0);
+    }
+
+    // Interactive Sliders logic for Mockup
+    const formatMoney = (val) => val.toFixed(2) + '억';
+    
+    document.getElementById('slider-t').addEventListener('input', function(e) {
+        const factor = parseFloat(e.target.value);
+        document.getElementById('val-t').innerText = Math.round(900 * factor).toLocaleString() + ' 만원';
+        
+        // Mock calculations
+        const burden = 9.83 * factor;
+        const totalInvest = 41.00 + burden;
+        const margin = 75.15 - totalInvest;
+        const roi = (margin / totalInvest) * 100;
+        
+        document.getElementById('burden-value').innerText = formatMoney(burden);
+        document.getElementById('invest-value').innerText = formatMoney(totalInvest);
+        
+        const marginEl = document.getElementById('margin-value');
+        marginEl.innerText = (margin > 0 ? '+ ' : '- ') + formatMoney(Math.abs(margin));
+        marginEl.className = 'result-value ' + (margin > 0 ? 'gain' : 'loss');
+        
+        document.getElementById('roi-value').innerText = roi.toFixed(2) + '%';
+    });
+    
+    document.querySelectorAll('.modern-slider').forEach(slider => {
+        slider.addEventListener('input', function(e) {
+            const val = (e.target.value - e.target.min) / (e.target.max - e.target.min) * 100;
+            e.target.style.background = `linear-gradient(to right, var(--accent-gold) ${val}%, rgba(255,255,255,0.1) ${val}%)`;
+        });
+        
+        const val = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+        slider.style.background = `linear-gradient(to right, var(--accent-gold) ${val}%, rgba(255,255,255,0.1) ${val}%)`;
+    });
+</script>
+</body>
+</html>
