@@ -2,9 +2,13 @@ package com.jaejal.reconstruction.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -17,6 +21,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,11 +40,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,12 +59,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jaejal.reconstruction.calc.Engine
 import com.jaejal.reconstruction.data.District
 import com.jaejal.reconstruction.data.RankedDistrict
 import com.jaejal.reconstruction.data.Repository
 import com.jaejal.reconstruction.data.TypeInfo
+import com.jaejal.reconstruction.design.BookmarkHeart
 import com.jaejal.reconstruction.design.BottomNavItem
 import com.jaejal.reconstruction.design.ChipTone
 import com.jaejal.reconstruction.design.ConstructionBottomBar
@@ -84,16 +92,16 @@ import com.jaejal.reconstruction.format.Format
 private val NAV_ITEMS = listOf(
     BottomNavItem("home", "홈", ConstructionIcons.Home),
     BottomNavItem("districts", "단지", ConstructionIcons.Districts),
-    BottomNavItem("sims", "시뮬", ConstructionIcons.Sims),
+    BottomNavItem("bookmarks", "북마크", ConstructionIcons.HeartOutline),
     BottomNavItem("my", "마이", ConstructionIcons.My)
 )
 
 private fun Tab.toKey(): String = when (this) {
-    Tab.Home -> "home"; Tab.Districts -> "districts"; Tab.Sims -> "sims"; Tab.My -> "my"
+    Tab.Home -> "home"; Tab.Districts -> "districts"; Tab.Bookmarks -> "bookmarks"; Tab.My -> "my"
 }
 
 private fun keyToTab(k: String): Tab = when (k) {
-    "home" -> Tab.Home; "districts" -> Tab.Districts; "sims" -> Tab.Sims; "my" -> Tab.My; else -> Tab.Home
+    "home" -> Tab.Home; "districts" -> Tab.Districts; "bookmarks" -> Tab.Bookmarks; "my" -> Tab.My; else -> Tab.Home
 }
 
 @Composable
@@ -133,16 +141,21 @@ private fun AppShell(state: AppState) {
             }
         }
     ) { padding ->
+        // NOTE: we intentionally do NOT apply the status-bar inset here. Each root
+        // surface handles it itself so colored areas (the home hero, detail top bars)
+        // bleed under the status bar instead of leaving a band of background color.
         Box(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .windowInsetsPadding(WindowInsets.statusBars)
         ) {
             AnimatedContent(
                 targetState = state.currentTab to state.currentRoute,
                 transitionSpec = {
-                    fadeIn(tween(180)) togetherWith fadeOut(tween(120))
+                    // Subtle scale+fade — adds depth for the dark-glass look without
+                    // feeling cartoonish. Mirrors the BookmarkHeart enter/exit spec.
+                    (scaleIn(spring(stiffness = Spring.StiffnessMedium), initialScale = 0.96f) + fadeIn(tween(180)))
+                        .togetherWith(scaleOut(spring(stiffness = Spring.StiffnessMedium), targetScale = 0.96f) + fadeOut(tween(120)))
                 },
                 label = "route"
             ) { (tab, route) ->
@@ -157,7 +170,7 @@ private fun RouteContent(state: AppState, tab: Tab, route: Route) {
     when (route) {
         is Route.RankingList -> RankingScreen(state)
         is Route.DistrictList -> DistrictListScreen(state)
-        is Route.SimsHistory -> SimsHistoryScreen(state)
+        is Route.BookmarkList -> BookmarkListScreen(state)
         is Route.MyProfile -> MyScreen(state)
         is Route.TypeSelect -> {
             val d = state.findDistrict(route.districtName) ?: return
@@ -181,7 +194,7 @@ private fun RouteContent(state: AppState, tab: Tab, route: Route) {
 private fun LoadingScreen() {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = ConstructionColors.Navy, strokeWidth = 2.dp)
+            CircularProgressIndicator(color = ConstructionColors.Gold, strokeWidth = 2.dp)
             VSpace(Design.spacing.md)
             Text("데이터를 불러오는 중입니다…", color = ConstructionColors.InkMuted)
         }
@@ -199,67 +212,118 @@ private fun ErrorScreen(msg: String) {
     }
 }
 
-// ============= Top bar shared by detail screens =============
+// ============= Top app bars =============
 
+/**
+ * Compact top app bar height (content row), Material-style. The status-bar inset
+ * is consumed ONCE here so the title row sits immediately below the status bar —
+ * no stacked padding, uniform across every screen.
+ */
+private val TopBarHeight = 48.dp
+
+/**
+ * Detail-screen app bar: a fixed-height row with a leading back button, the title,
+ * and an optional compact breadcrumb/subtitle. Title + back are vertically centered
+ * in the bar (no empty band above), breadcrumb sits as a tight subtitle below.
+ */
 @Composable
 private fun DetailTopBar(
     title: String,
     breadcrumb: List<String>,
     onBack: () -> Unit
 ) {
-    val barShape = RoundedCornerShape(bottomStart = Design.radii.lg, bottomEnd = Design.radii.lg)
-    Column {
-        Box(
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(ConstructionColors.Paper)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = Design.spacing.sm)
+    ) {
+        Row(
             Modifier
                 .fillMaxWidth()
-                .shadow(
-                    elevation = 3.dp,
-                    shape = barShape,
-                    ambientColor = ConstructionColors.NavyDeep.copy(alpha = 0.05f),
-                    spotColor = ConstructionColors.NavyDeep.copy(alpha = 0.07f),
-                    clip = false
-                )
-                .clip(barShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(ConstructionColors.PaperAlt, ConstructionColors.Paper)
-                    )
-                )
+                .height(TopBarHeight),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        if (breadcrumb.isNotEmpty()) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                breadcrumb.forEachIndexed { i, p ->
-                                    if (i > 0) Text(
-                                        " · ",
-                                        color = ConstructionColors.InkMuted,
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                    Text(
-                                        p,
-                                        color = if (i == breadcrumb.lastIndex) ConstructionColors.NavyDeep else ConstructionColors.InkSoft,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (i == breadcrumb.lastIndex) FontWeight.SemiBold else FontWeight.Medium
-                                    )
-                                }
-                            }
-                            VSpace(2.dp)
-                        }
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.displaySmall,
-                            color = ConstructionColors.Ink
-                        )
-                    }
-                    TextButton(onClick = onBack) {
-                        Text("← 뒤로", color = ConstructionColors.Navy, fontWeight = FontWeight.SemiBold)
-                    }
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = ConstructionIcons.ArrowBack,
+                    contentDescription = "뒤로",
+                    tint = ConstructionColors.Ink,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            HSpace(Design.spacing.xs)
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineMedium,
+                color = ConstructionColors.Ink,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        if (breadcrumb.isNotEmpty()) {
+            Row(
+                modifier = Modifier.padding(
+                    start = Design.spacing.lg,
+                    end = Design.spacing.sm,
+                    bottom = Design.spacing.sm
+                ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                breadcrumb.forEachIndexed { i, p ->
+                    if (i > 0) Text(
+                        " · ",
+                        color = ConstructionColors.InkMuted,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        p,
+                        color = if (i == breadcrumb.lastIndex) ConstructionColors.Gold else ConstructionColors.InkSoft,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (i == breadcrumb.lastIndex) FontWeight.SemiBold else FontWeight.Medium
+                    )
                 }
             }
         }
+        HairlineDivider()
     }
+}
+
+/**
+ * Root-tab app bar: same fixed-height row + tight subtitle, no back button.
+ * Keeps top spacing identical to DetailTopBar so every screen lines up.
+ */
+@Composable
+internal fun TabTopBar(title: String, subtitle: String) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = Design.spacing.gutter,
+                end = Design.spacing.gutter,
+                top = Design.spacing.sm,
+                bottom = Design.spacing.sm
+            )
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineLarge,
+            color = ConstructionColors.Ink,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = ConstructionColors.InkSoft,
+            modifier = Modifier.padding(top = 2.dp)
+        )
+    }
+    HairlineDivider()
 }
 
 // ============= Home (curated ranking) =============
@@ -277,8 +341,15 @@ private fun RankingScreen(state: AppState) {
                 sub = "종전자산 최소 타입의 기준 수익률 기준 내림차순"
             )
         }
-        itemsIndexed(state.ranked) { i, ranked ->
-            Box(Modifier.padding(horizontal = Design.spacing.gutter, vertical = 6.dp)) {
+        itemsIndexed(
+            state.ranked,
+            key = { _, ranked -> ranked.district.name }
+        ) { i, ranked ->
+            Box(
+                Modifier
+                    .animateItem()
+                    .padding(horizontal = Design.spacing.gutter, vertical = 6.dp)
+            ) {
                 RankCard(rank = i + 1, ranked = ranked) { state.openDistrict(ranked.district) }
             }
         }
@@ -307,29 +378,37 @@ private fun RankingHero() {
                     listOf(ConstructionColors.NavyDeep, ConstructionColors.Navy)
                 )
             )
-            .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.xxl)
+            // Bleed the gradient under the status bar, then pad content below it.
+            // Keep the top pad small so the inset doesn't stack into a tall empty gap.
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = Design.spacing.gutter,
+                end = Design.spacing.gutter,
+                top = Design.spacing.sm,
+                bottom = Design.spacing.lg
+            )
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ConstructionLogo(size = 40.dp, onDark = true)
-                HSpace(Design.spacing.md)
+                ConstructionLogo(size = 32.dp, onDark = true)
+                HSpace(Design.spacing.sm)
                 Text(
                     "재건축 랭커",
-                    style = MaterialTheme.typography.displayLarge,
+                    style = MaterialTheme.typography.displaySmall,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            VSpace(6.dp)
+            VSpace(4.dp)
             Text(
                 "공개 고시문 기반 분담금 · 매도판단 시뮬레이터",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = ConstructionColors.NavyTint
             )
-            VSpace(Design.spacing.lg)
+            VSpace(Design.spacing.md)
             Row {
-                StatBadge("단지", "5"); HSpace(Design.spacing.md)
-                StatBadge("공개 예정", "2"); HSpace(Design.spacing.md)
+                StatBadge("단지", "5"); HSpace(Design.spacing.sm)
+                StatBadge("공개 예정", "2"); HSpace(Design.spacing.sm)
                 StatBadge("기준일", "2026-05")
             }
         }
@@ -428,11 +507,13 @@ private fun TypeSelectScreen(state: AppState, d: District) {
             onBack = { state.pop() }
         )
         LazyColumn(
-            Modifier.fillMaxSize(),
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars),
             contentPadding = PaddingValues(
                 start = Design.spacing.gutter,
                 end = Design.spacing.gutter,
-                top = Design.spacing.md,
+                top = Design.spacing.sm,
                 bottom = Design.spacing.xxl
             ),
             verticalArrangement = Arrangement.spacedBy(Design.spacing.md)
@@ -455,7 +536,7 @@ private fun TypeSelectScreen(state: AppState, d: District) {
                             Text(
                                 phase,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = ConstructionColors.NavyDeep
+                                color = ConstructionColors.InkSoft
                             )
                             HSpace(Design.spacing.sm)
                             Box(
@@ -467,11 +548,14 @@ private fun TypeSelectScreen(state: AppState, d: District) {
                         }
                     }
                 }
-                items(types.chunked(2)) { row ->
+                items(
+                    types.chunked(2),
+                    key = { row -> row.joinToString("|") { it.index.toString() } }
+                ) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(Design.spacing.md)) {
                         row.forEach { t ->
                             Box(Modifier.weight(1f)) {
-                                TypeCard(district = d, type = t) { state.openType(d, t) }
+                                TypeCard(state = state, district = d, type = t) { state.openType(d, t) }
                             }
                         }
                         if (row.size == 1) Box(Modifier.weight(1f)) {}
@@ -483,32 +567,44 @@ private fun TypeSelectScreen(state: AppState, d: District) {
 }
 
 @Composable
-private fun TypeCard(district: District, type: TypeInfo, onClick: () -> Unit) {
-    val result = Engine.calculate(district.base, type)
+private fun TypeCard(state: AppState, district: District, type: TypeInfo, onClick: () -> Unit) {
+    val result = remember(district.base, type) { Engine.calculate(district.base, type) }
     val burdenTone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss
     val roiTone = if (result.roi >= 0) ChipTone.Gain else ChipTone.Loss
-    TrustCard(modifier = Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(Design.spacing.lg)) {
-        Column {
-            Text(
-                formatTypeLabel(district, type),
-                style = MaterialTheme.typography.titleLarge,
-                color = ConstructionColors.Ink,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                "분양 ${type.saleArea ?: "—"}",
-                style = MaterialTheme.typography.labelMedium,
-                color = ConstructionColors.InkMuted
-            )
-            VSpace(Design.spacing.md)
-            StatLine("KB시세", Format.eok(type.kbPrice), tone = ChipTone.Primary)
-            StatLine("분담금", Format.burdenWithRefund(result.burden), tone = burdenTone)
-            StatLine("기준 수익률", Format.percent(result.roi), tone = roiTone)
+    val bookmarked = state.isBookmarked(district, type)
+    Box {
+        TrustCard(modifier = Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(Design.spacing.lg)) {
+            Column {
+                // Reserve room on the right so the title never runs under the heart.
+                Text(
+                    formatTypeLabel(district, type),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = ConstructionColors.Ink,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(end = 28.dp)
+                )
+                Text(
+                    "분양 ${type.saleArea ?: "—"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ConstructionColors.InkMuted
+                )
+                VSpace(Design.spacing.md)
+                StatLine("KB시세", Format.eok(type.kbPrice), tone = ChipTone.Primary, icon = ConstructionIcons.Building)
+                StatLine("분담금", Format.burdenWithRefund(result.burden), tone = burdenTone, icon = ConstructionIcons.Calculator)
+                StatLine("기준 수익률", Format.percent(result.roi), tone = roiTone, icon = ConstructionIcons.TrendingUp)
+            }
         }
+        BookmarkHeart(
+            bookmarked = bookmarked,
+            onToggle = { state.toggleBookmark(district, type) },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = Design.spacing.xs, top = Design.spacing.xs)
+        )
     }
 }
 
-private fun formatTypeLabel(d: District, t: TypeInfo): String {
+internal fun formatTypeLabel(d: District, t: TypeInfo): String {
     val raw = t.label
     return when {
         d.name.startsWith("압구정") -> if (raw.endsWith("A") || raw.endsWith("B")) "${raw}형" else "${raw}평"
@@ -528,6 +624,7 @@ private fun QuestionSelectScreen(state: AppState, d: District, t: TypeInfo) {
         Column(
             Modifier
                 .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(Design.spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Design.spacing.lg)
         ) {
@@ -569,10 +666,11 @@ private fun QuestionHeroCard(index: Int, title: String, sub: String, tone: ChipT
             VSpace(6.dp)
             Text(sub, style = MaterialTheme.typography.bodyMedium, color = ConstructionColors.InkSoft)
             VSpace(Design.spacing.md)
+            val ctaColor = if (tone == ChipTone.Primary) ConstructionColors.Ink else ConstructionColors.Gold
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("시작하기", style = MaterialTheme.typography.titleSmall, color = ConstructionColors.Navy, fontWeight = FontWeight.SemiBold)
+                Text("시작하기", style = MaterialTheme.typography.titleSmall, color = ctaColor, fontWeight = FontWeight.SemiBold)
                 HSpace(6.dp)
-                Text("→", color = ConstructionColors.Navy, fontWeight = FontWeight.Bold)
+                Text("→", color = ctaColor, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -605,6 +703,7 @@ private fun DisclaimerScreen(state: AppState) {
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(Design.spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Design.spacing.sm)
         ) {
@@ -613,15 +712,15 @@ private fun DisclaimerScreen(state: AppState) {
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(Design.radii.xl),
                 border = BorderStroke(1.dp, ConstructionColors.Border),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.Navy)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.Ink)
             ) { Text("뒤로") }
             Button(
                 onClick = { state.acceptDisclaimer() },
                 modifier = Modifier.weight(2f),
                 shape = RoundedCornerShape(Design.radii.xl),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ConstructionColors.Navy,
-                    contentColor = ConstructionColors.InkOnDark
+                    containerColor = ConstructionColors.Gold,
+                    contentColor = ConstructionColors.NavyDeep
                 )
             ) { Text("동의하고 계속합니다", fontWeight = FontWeight.SemiBold) }
         }
@@ -637,7 +736,7 @@ private fun DisclaimerSection(index: String, title: String, body: String) {
                 .background(ConstructionColors.NavyTint, RoundedCornerShape(Design.radii.pill)),
             contentAlignment = Alignment.Center
         ) {
-            Text(index, color = ConstructionColors.NavyDeep, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(index, color = ConstructionColors.InkSoft, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         }
         HSpace(Design.spacing.md)
         Column(Modifier.weight(1f)) {
@@ -762,9 +861,10 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
             Modifier
                 .weight(if (dense) 0.72f else 0.55f)
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)
         ) {
-            Text("변수를 움직여 보세요", style = MaterialTheme.typography.titleLarge, color = ConstructionColors.NavyDeep, fontWeight = FontWeight.SemiBold)
+            Text("변수를 움직여 보세요", style = MaterialTheme.typography.titleLarge, color = ConstructionColors.Ink, fontWeight = FontWeight.SemiBold)
             Text("기준 × 0.6 ~ 1.4 범위에서 즉시 반영됩니다", style = MaterialTheme.typography.bodySmall, color = ConstructionColors.InkMuted)
 
             ConstructionSlider(
@@ -832,8 +932,8 @@ private fun ActionRow(onReset: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Design.radii.xl),
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = ConstructionColors.NavyTint,
-            contentColor = ConstructionColors.NavyDeep
+            containerColor = ConstructionColors.GoldSoft,
+            contentColor = ConstructionColors.Gold
         )
     ) {
         Text("기본값으로", fontWeight = FontWeight.SemiBold)

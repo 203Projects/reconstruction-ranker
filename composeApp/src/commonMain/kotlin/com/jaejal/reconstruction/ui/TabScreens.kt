@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,12 +40,13 @@ import com.jaejal.reconstruction.calc.Engine
 import com.jaejal.reconstruction.data.District
 import com.jaejal.reconstruction.data.RankedDistrict
 import com.jaejal.reconstruction.data.Repository
+import com.jaejal.reconstruction.data.TypeInfo
+import com.jaejal.reconstruction.design.BookmarkHeart
 import com.jaejal.reconstruction.design.ChipTone
 import com.jaejal.reconstruction.design.ConstructionColors
 import com.jaejal.reconstruction.design.ConstructionIcons
 import com.jaejal.reconstruction.design.Design
 import com.jaejal.reconstruction.design.HSpace
-import com.jaejal.reconstruction.design.HairlineDivider
 import com.jaejal.reconstruction.design.QuietCard
 import com.jaejal.reconstruction.design.RankBadge
 import com.jaejal.reconstruction.design.SectionHeader
@@ -73,26 +73,23 @@ fun DistrictListScreen(state: AppState) {
         else all.filter { it.district.name.contains(query) || it.district.address.contains(query) }
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TabTopBar(
+            title = "단지",
+            subtitle = "${all.size}개 단지 + ${Repository.blurredDistricts.size}개 공개 예정"
+        )
+        Box(
+            Modifier.padding(
+                horizontal = Design.spacing.gutter,
+                vertical = Design.spacing.sm
+            )
         ) {
-            Text(
-                "단지",
-                style = MaterialTheme.typography.displaySmall,
-                color = ConstructionColors.Ink
-            )
-            Text(
-                "${all.size}개 단지 + ${Repository.blurredDistricts.size}개 공개 예정",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ConstructionColors.InkSoft
-            )
-            VSpace(Design.spacing.md)
             SearchField(query = query, onChange = { query = it })
         }
-        HairlineDivider()
         if (filtered.isEmpty()) {
             EmptyState(
                 title = "검색 결과가 없습니다",
@@ -103,8 +100,10 @@ fun DistrictListScreen(state: AppState) {
                 contentPadding = PaddingValues(horizontal = Design.spacing.gutter, vertical = Design.spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Design.spacing.sm)
             ) {
-                itemsIndexed(filtered) { i, ranked ->
-                    DistrictListRow(rank = i + 1, ranked = ranked) { state.openDistrict(ranked.district) }
+                itemsIndexed(filtered, key = { _, ranked -> ranked.district.name }) { i, ranked ->
+                    Box(Modifier.animateItem()) {
+                        DistrictListRow(rank = i + 1, ranked = ranked) { state.openDistrict(ranked.district) }
+                    }
                 }
                 items(Repository.blurredDistricts) { b ->
                     QuietCard(modifier = Modifier.fillMaxWidth()) {
@@ -150,7 +149,7 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
                     value = query,
                     onValueChange = onChange,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = ConstructionColors.Ink),
-                    cursorBrush = SolidColor(ConstructionColors.Navy),
+                    cursorBrush = SolidColor(ConstructionColors.Gold),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -190,76 +189,89 @@ private fun DistrictListRow(rank: Int, ranked: RankedDistrict, onClick: () -> Un
     }
 }
 
-// ============= Sims tab — history =============
+// ============= Bookmarks tab — saved 평형 =============
 
 @Composable
-fun SimsHistoryScreen(state: AppState) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Column(
-            Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
-        ) {
-            Text("시뮬레이션", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
-            Text(
-                "최근에 살펴본 단지·평형 기록입니다",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ConstructionColors.InkSoft
-            )
-        }
-        HairlineDivider()
+fun BookmarkListScreen(state: AppState) {
+    val bookmarks = state.bookmarks.items
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TabTopBar(title = "북마크", subtitle = "관심 표시한 단지·평형입니다")
 
-        if (state.simHistory.isEmpty()) {
+        if (bookmarks.isEmpty()) {
             EmptyState(
-                title = "아직 시뮬레이션 기록이 없습니다",
-                sub = "단지를 골라 분담금·매도판단 시뮬레이션을 시작해 보세요",
+                title = "아직 북마크한 평형이 없습니다",
+                sub = "단지 상세에서 평형 카드의 하트를 눌러 저장해 보세요",
                 ctaLabel = "단지 보기",
-                onCta = { state.selectTab(Tab.Districts) }
+                onCta = { state.selectTab(Tab.Districts) },
+                icon = ConstructionIcons.HeartOutline
             )
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = Design.spacing.gutter, vertical = Design.spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Design.spacing.sm)
             ) {
-                items(state.simHistory) { rec ->
-                    QuietCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { state.openHistory(rec) }
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                Modifier
-                                    .size(36.dp)
-                                    .background(ConstructionColors.NavyTint, RoundedCornerShape(Design.radii.pill)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = ConstructionIcons.Clock,
-                                    contentDescription = null,
-                                    tint = ConstructionColors.Navy,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            HSpace(Design.spacing.md)
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    "${rec.districtName} · ${rec.typeLabel}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = ConstructionColors.Ink,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    rec.question.short,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = ConstructionColors.InkSoft
-                                )
-                            }
-                            ToneChip(
-                                text = if (rec.question == Question.Q1) "Q1" else "Q2",
-                                tone = if (rec.question == Question.Q1) ChipTone.Primary else ChipTone.Gold
-                            )
-                        }
+                items(bookmarks, key = { it.districtName + "|" + it.typeLabel }) { b ->
+                    val d = state.findDistrict(b.districtName)
+                    val t = d?.types?.firstOrNull { it.label == b.typeLabel }
+                    Box(Modifier.animateItem()) {
+                        BookmarkRow(
+                            district = d,
+                            type = t,
+                            districtName = b.districtName,
+                            typeLabel = b.typeLabel,
+                            onOpen = { state.openBookmark(b) },
+                            onRemove = { if (d != null && t != null) state.toggleBookmark(d, t) }
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkRow(
+    district: District?,
+    type: TypeInfo?,
+    districtName: String,
+    typeLabel: String,
+    onOpen: () -> Unit,
+    onRemove: () -> Unit
+) {
+    // Key figures, when the source data is available (bookmarks are keyed by name,
+    // so a missing district just renders the saved label without numbers).
+    val roi = remember(district, type) {
+        if (district != null && type != null) Engine.calculate(district.base, type).roi else null
+    }
+    val shownType = if (district != null && type != null) formatTypeLabel(district, type) else typeLabel
+    QuietCard(modifier = Modifier.fillMaxWidth(), onClick = onOpen) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "$districtName · $shownType",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ConstructionColors.Ink,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (roi != null) {
+                    Text(
+                        "기준 수익률 ${Format.percent(roi)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (roi >= 0) ConstructionColors.Gain else ConstructionColors.Loss
+                    )
+                } else {
+                    Text(
+                        "저장된 평형",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = ConstructionColors.InkSoft
+                    )
+                }
+            }
+            BookmarkHeart(bookmarked = true, onToggle = onRemove)
         }
     }
 }
@@ -268,18 +280,12 @@ fun SimsHistoryScreen(state: AppState) {
 
 @Composable
 fun MyScreen(state: AppState) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Column(
-            Modifier.padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.lg)
-        ) {
-            Text("마이", style = MaterialTheme.typography.displaySmall, color = ConstructionColors.Ink)
-            Text(
-                "이 서비스는 사용자 피드백으로 함께 만들어집니다",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ConstructionColors.InkSoft
-            )
-        }
-        HairlineDivider()
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TabTopBar(title = "마이", subtitle = "이 서비스는 사용자 피드백으로 함께 만들어집니다")
         Column(
             Modifier
                 .fillMaxSize()
@@ -305,7 +311,7 @@ fun MyScreen(state: AppState) {
                             onClick = { /* stub */ },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ConstructionColors.NavyTint,
+                                containerColor = ConstructionColors.Gold,
                                 contentColor = ConstructionColors.NavyDeep
                             )
                         ) { Text("고쳐주세요", fontWeight = FontWeight.SemiBold) }
@@ -313,8 +319,8 @@ fun MyScreen(state: AppState) {
                             onClick = { /* stub */ },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ConstructionColors.CopperSoft,
-                                contentColor = ConstructionColors.Loss
+                                containerColor = ConstructionColors.NavyTint,
+                                contentColor = ConstructionColors.Ink
                             )
                         ) { Text("우리 단지도", fontWeight = FontWeight.SemiBold) }
                     }
@@ -377,7 +383,8 @@ fun EmptyState(
     title: String,
     sub: String,
     ctaLabel: String? = null,
-    onCta: (() -> Unit)? = null
+    onCta: (() -> Unit)? = null,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = ConstructionIcons.Clock
 ) {
     Column(
         Modifier
@@ -389,13 +396,13 @@ fun EmptyState(
         Box(
             Modifier
                 .size(72.dp)
-                .background(ConstructionColors.NavyTint, CircleShape),
+                .background(ConstructionColors.GoldSoft, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = ConstructionIcons.Clock,
+                imageVector = icon,
                 contentDescription = null,
-                tint = ConstructionColors.Navy,
+                tint = ConstructionColors.Gold,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -417,8 +424,11 @@ fun EmptyState(
             VSpace(Design.spacing.lg)
             Button(
                 onClick = onCta,
-                colors = ButtonDefaults.buttonColors(containerColor = ConstructionColors.Navy)
-            ) { Text(ctaLabel, color = Color.White, fontWeight = FontWeight.SemiBold) }
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ConstructionColors.Gold,
+                    contentColor = ConstructionColors.NavyDeep
+                )
+            ) { Text(ctaLabel, fontWeight = FontWeight.SemiBold) }
         }
     }
 }

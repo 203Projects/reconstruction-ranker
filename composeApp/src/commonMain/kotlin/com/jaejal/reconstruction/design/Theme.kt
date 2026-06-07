@@ -2,7 +2,7 @@ package com.jaejal.reconstruction.design
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.TextStyle
@@ -20,21 +20,21 @@ import com.jaejal.reconstruction.resources.NotoSerifKR_SemiBold
 import com.jaejal.reconstruction.resources.Res
 import org.jetbrains.compose.resources.Font
 
-private val ConstructionColorScheme = lightColorScheme(
+private val ConstructionColorScheme = darkColorScheme(
     primary = ConstructionColors.Navy,
     onPrimary = ConstructionColors.InkOnDark,
     primaryContainer = ConstructionColors.NavyTint,
-    onPrimaryContainer = ConstructionColors.NavyDeep,
+    onPrimaryContainer = ConstructionColors.InkStrong,
 
     secondary = ConstructionColors.Copper,
     onSecondary = ConstructionColors.InkOnDark,
     secondaryContainer = ConstructionColors.CopperSoft,
-    onSecondaryContainer = ConstructionColors.Loss,
+    onSecondaryContainer = ConstructionColors.Copper,
 
     tertiary = ConstructionColors.Gold,
     onTertiary = ConstructionColors.InkOnDark,
     tertiaryContainer = ConstructionColors.GoldSoft,
-    onTertiaryContainer = ConstructionColors.Ink,
+    onTertiaryContainer = ConstructionColors.Gold,
 
     background = ConstructionColors.Paper,
     onBackground = ConstructionColors.Ink,
