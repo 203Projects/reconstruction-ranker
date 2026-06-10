@@ -117,7 +117,7 @@ fun ConstructionLogo(
     val vector = if (onDark) ConstructionIcons.LogoOnDark else ConstructionIcons.Logo
     Image(
         imageVector = vector,
-        contentDescription = "재건축 랭커",
+        contentDescription = Brand.PRODUCT_NAME,
         modifier = modifier.size(size),
         contentScale = ContentScale.Fit
     )
@@ -127,7 +127,7 @@ fun ConstructionLogo(
 // ConstructionWordmark composable
 // ---------------------------------------------------------------------------
 //
-// Mark + "재건축 랭커" in Noto Serif KR (headlineSmall) side-by-side.
+// Mark + the product name in Noto Serif KR (headlineSmall) side-by-side.
 // Intended for: splash, My-tab header, future global top bar.
 
 /**
@@ -151,7 +151,7 @@ fun ConstructionWordmark(
         ConstructionLogo(size = markSize)
         Spacer(Modifier.width(Design.spacing.sm))
         Text(
-            text = "재건축 랭커",
+            text = Brand.PRODUCT_NAME,
             style = style,
             color = color,
             fontWeight = FontWeight.SemiBold

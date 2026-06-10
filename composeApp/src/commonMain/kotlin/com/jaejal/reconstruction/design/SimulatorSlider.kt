@@ -4,6 +4,7 @@ package com.jaejal.reconstruction.design
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -133,56 +134,62 @@ fun ConstructionSlider(
             }
         )
 
-        // Peer markers row — a low rail with dots + names, clipped at edges
-        BoxWithConstraints(Modifier.fillMaxWidth().heightIn(min = railMin)) {
-            val totalWidthDp = maxWidth
+        // Peer markers. Two parts that CAN'T overlap each other or the next slider:
+        //   1. dots positioned by value on a thin rail (the spatial "where each peer sits"),
+        //   2. a single legend row of names in NORMAL layout flow (so it reserves its own
+        //      height and can never bleed into the slider below).
+        // The old design absolutely-positioned a name pill under every dot, which collided
+        // both with sibling pills (clustered peers) and with the next slider's title.
+        if (markers.isNotEmpty()) {
             val span = (range.endInclusive - range.start).coerceAtLeast(0.0001)
-            // background rail
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(2.dp)
-                    .background(ConstructionColors.Hairline)
-                    // Nudged from 8dp to 10dp so the rail clears the thicker 8dp track.
-                    .offset(y = 10.dp)
-            )
-            markers.forEach { m ->
-                val clipped = m.value.coerceIn(range.start, range.endInclusive)
-                val frac = ((clipped - range.start) / span).coerceIn(0.0, 1.0).toFloat()
-                val isClipped = m.value < range.start || m.value > range.endInclusive
-                val xDp = totalWidthDp * frac
-                // dot
+            // (1) value dots on a rail — fixed small height, no labels here.
+            Box(Modifier.fillMaxWidth().height(railMin)) {
                 Box(
                     Modifier
-                        .offset(x = xDp - 4.dp, y = 6.dp)
-                        .size(8.dp)
-                        .background(
-                            if (isClipped) ConstructionColors.InkMuted else ConstructionColors.Gold,
-                            CircleShape
-                        )
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .offset(y = 6.dp)
+                        .background(ConstructionColors.Hairline)
                 )
-                // small label chip — opaque dark pill so the slate label stays
-                // legible against the deep-navy background (transparent glass
-                // surfaces gave no contrast lift in dark mode).
-                Box(
-                    Modifier
-                        .offset(x = (xDp - 30.dp).coerceAtLeast(0.dp), y = 18.dp)
-                        .background(
-                            ConstructionColors.PaperAlt,
-                            RoundedCornerShape(Design.radii.pill)
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val totalWidthDp = maxWidth
+                    markers.forEach { m ->
+                        val clipped = m.value.coerceIn(range.start, range.endInclusive)
+                        val frac = ((clipped - range.start) / span).coerceIn(0.0, 1.0).toFloat()
+                        val isClipped = m.value < range.start || m.value > range.endInclusive
+                        Box(
+                            Modifier
+                                .offset(x = (totalWidthDp * frac) - 4.dp, y = 2.dp)
+                                .size(8.dp)
+                                .background(
+                                    if (isClipped) ConstructionColors.InkMuted else ConstructionColors.Gold,
+                                    CircleShape
+                                )
                         )
-                        .border(
-                            width = 1.dp,
-                            color = ConstructionColors.Border,
-                            shape = RoundedCornerShape(Design.radii.pill)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                    }
+                }
+            }
+            // (2) legend row — names evenly spread, in flow, single line, never overlapping.
+            if (!compact) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        m.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ConstructionColors.Ink
-                    )
+                    markers.forEach { m ->
+                        Box(
+                            Modifier
+                                .background(ConstructionColors.PaperAlt, RoundedCornerShape(Design.radii.pill))
+                                .border(1.dp, ConstructionColors.Border, RoundedCornerShape(Design.radii.pill))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                m.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ConstructionColors.InkSoft,
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
             }
         }

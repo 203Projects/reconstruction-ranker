@@ -60,6 +60,16 @@ object ConstructionColors {
 
     // Map / blurred
     val MapMist = Color(0xFF1E293B)      // slate-800
+
+    // --- Pixel-art playful hues (Jaejal gamification) ---
+    // Safe as FILLS inside outlined sprites; any text/number/speech-bubble still uses
+    // Ink/Gold for AA contrast on the dark Paper background.
+    val Sky = Color(0xFF2D3B59)          // mid-tone facade band
+    val SkySoft = Color(0xFF3D5280)      // cool lit window glass
+    val Brick = Color(0xFF9A5B3B)        // 은마 old brick base
+    val BrickLight = Color(0xFFC17A52)   // brick highlight / mortar
+    val Leaf = Color(0xFF4ADE80)         // 목동6 foliage (brighter than Gain so it never reads "refund")
+    val Cloud = Color(0xFFE6ECF5)        // mascot belly / hat shine
 }
 
 /** Compact spacing scale (4dp baseline). */
@@ -91,7 +101,11 @@ data class Motion(
     val instant: Int = 0,
     val fast: Int = 120,
     val medium: Int = 220,
-    val slow: Int = 360
+    val slow: Int = 360,
+    // Gamification: the 분담금 count-up reveal (magnitude-scaled, clamped 800–1500 at call site)
+    // and the one-shot celebratory beats (confetti / ring pulse / glow).
+    val reveal: Int = 1100,
+    val celebrate: Int = 700
 )
 
 data class ConstructionDesign(
