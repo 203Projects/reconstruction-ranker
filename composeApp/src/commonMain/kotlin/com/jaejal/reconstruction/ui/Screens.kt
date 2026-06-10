@@ -79,6 +79,7 @@ import com.jaejal.reconstruction.design.CountUpNumber
 import com.jaejal.reconstruction.design.ExchangeMeter
 import com.jaejal.reconstruction.design.JaejalMascot
 import com.jaejal.reconstruction.design.MascotMood
+import com.jaejal.reconstruction.design.litFractionFor
 import com.jaejal.reconstruction.design.PixelSprite
 import com.jaejal.reconstruction.design.isAnimationEnabled
 import com.jaejal.reconstruction.design.ChipTone
@@ -823,12 +824,13 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
         atOverride = if (question == Question.Q2) atOverride else null
     )
 
-    val peers = state.districts.filter { it.name != d.name }
+    val peers = remember(state.districts, d.name) { state.districts.filter { it.name != d.name } }
     val peerShort: (District) -> String = { it.name.take(4) }
     val building = remember(d.name) { Buildings.forDistrict(d.name) }
     val isRefund = result.burden < 0
-    // 교환비 → how much of the building lights up (data lives ~0.61..1.01).
-    val litFraction = (((result.proportionRatio - 0.55) / 0.50).coerceIn(0.0, 1.0)).toFloat()
+    // 교환비 → how much of the building lights up. Memoized on the ratio so an unchanged ratio
+    // doesn't hand BuildingFacade a fresh Float and restart its 220ms animation every frame.
+    val litFraction = remember(result.proportionRatio) { litFractionFor(result.proportionRatio) }
 
     Column(Modifier.fillMaxSize()) {
         DetailTopBar(
@@ -860,13 +862,21 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
                         atOverride = d.base.estimatedNewPrice84
                     },
                     onConfirm = {
-                        state.recordReveal(d.name, question, result.roi, result.burden)
-                        revealCount += 1
-                        revealed = true
+                        // Guard against a double-tap landing twice before the AnimatedContent
+                        // swap: a second increment would push revealCount past 1 and rob the
+                        // FIRST reveal of its theatrical drumroll.
+                        if (!revealed) {
+                            state.recordReveal(d.name, question, result.roi, result.burden)
+                            revealCount += 1
+                            revealed = true
+                        }
                     }
                 )
             } else {
                 // ---------- CHEST OPEN: the reveal ----------
+                // theatrical = the FIRST reveal of the session only (design: "drumroll once;
+                // the second look is analysis, not celebration"). Retry keeps the chest mechanic
+                // but the count-up is the quick, dignified one.
                 RevealStage(
                     d = d, t = t, question = question, result = result,
                     building = building, isRefund = isRefund,

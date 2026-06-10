@@ -74,13 +74,16 @@ class AppState {
 
     // ----- Gamification progress (in-memory; resets each launch) -----
     val districtProgress = mutableStateMapOf<String, DistrictProgress>()
-    var totalStars by mutableStateOf(0)
-        private set
-    var districtsCleared by mutableStateOf(0)
-        private set
+
+    // Derived from the map so they can never drift from it and never double-count — recomputed
+    // lazily only when an observer reads them after the map changes (5 districts, trivially cheap).
+    val totalStars: Int by derivedStateOf { districtProgress.values.sumOf { it.bestStars } }
+    val districtsCleared: Int by derivedStateOf { districtProgress.values.count { it.cleared } }
 
     /** Stars earned by a finished quest, derived from the ALREADY-COMPUTED result.
-     *  Q2 uses ROI; Q1 (no ROI) uses the refund/비례율 outcome so Q1-only players still climb. */
+     *  Q2 uses ROI; Q1 (no ROI) uses the refund/비례율 outcome so Q1-only players still climb.
+     *  Thresholds are upper-inclusive in both questions for consistent boundary behavior:
+     *  the higher band wins on an exact tie (e.g. ROI exactly 0.40 → 3⭐, burden exactly 0 → 3⭐). */
     fun starsFor(question: Question, roi: Double, burden: Double): Int = when (question) {
         Question.Q2 -> when {
             roi >= 0.40 -> 3
@@ -88,27 +91,24 @@ class AppState {
             else -> 1
         }
         Question.Q1 -> when {
-            burden < 0 -> 3            // refund — best outcome
-            burden < 1000.0 -> 2       // under ~10억 to pay
+            burden <= 0.0 -> 3         // refund or break-even — best outcome
+            burden <= 1000.0 -> 2      // up to ~10억 to pay
             else -> 1
         }
     }
 
     /** Record a finished reveal. Takes the already-computed result so AppState never imports
-     *  the engine (avoids a see-vs-store desync). Keeps only the best run per district. */
+     *  the engine (avoids a see-vs-store desync). Keeps only the best run per district.
+     *  Idempotent-friendly: re-recording the same/worse result never lowers bestStars, and the
+     *  derived aggregates recompute from the map so a double call can't inflate the totals. */
     fun recordReveal(districtName: String, question: Question, roi: Double, burden: Double) {
         val stars = starsFor(question, roi, burden)
         val prev = districtProgress[districtName] ?: DistrictProgress()
-        val wasClearedBefore = prev.cleared
-        val next = DistrictProgress(
+        districtProgress[districtName] = DistrictProgress(
             bestStars = maxOf(prev.bestStars, stars),
             bestRoi = listOfNotNull(prev.bestRoi, roi).maxOrNull(),
             cleared = true
         )
-        districtProgress[districtName] = next
-        // recompute aggregates from the map so they stay consistent
-        totalStars = districtProgress.values.sumOf { it.bestStars }
-        if (!wasClearedBefore) districtsCleared = districtProgress.values.count { it.cleared }
     }
 
     /** Per-tab back stack. The root route is always at index 0. */

@@ -36,6 +36,18 @@ import kotlin.math.abs
  * All hand-coded, KMP-common, no new dependency.
  */
 
+// 교환비(비례율) → 0..1 fraction, shared by the facade lighting AND the meter so they always
+// agree. The window must cover the FULL range the sliders can drive the ratio to: with three
+// independent 0.6..1.4 factors the engine reaches ~1.37 at one district and dips below 0.55 at
+// another, so a narrow 0.55..1.05 window froze (clamped) the visual at the extremes. 0.40..1.45
+// keeps the building + meter responsive across the entire slider space.
+private const val RATIO_MIN = 0.40
+private const val RATIO_MAX = 1.45
+
+/** Map a 교환비 ratio to a 0..1 fill/lit fraction over the full slider-reachable range. */
+fun litFractionFor(ratio: Double): Float =
+    (((ratio - RATIO_MIN) / (RATIO_MAX - RATIO_MIN)).coerceIn(0.0, 1.0)).toFloat()
+
 // ---------------------------------------------------------------------------
 // Live "building grows" facade
 // ---------------------------------------------------------------------------
@@ -60,12 +72,20 @@ fun BuildingFacade(
     )
     val litColor = if (isRefund) ConstructionColors.Gain else ConstructionColors.Gold
     val sprite = building.sprite
+    // Which windows are lit at the current fraction — computed once per `lit` step (windows
+    // light bottom-to-top), so the per-cell Canvas callback is just an O(1) set lookup instead
+    // of a height calc on all ~300 cells every frame.
+    val litWindows = remember(lit, building) {
+        building.windowIndexes.filterTo(HashSet()) { idx ->
+            val y = sprite.cells[idx].y
+            (1f - y.toFloat() / sprite.rows) <= lit
+        }
+    }
     PixelCanvas(sprite, modifier) { idx, cell ->
-        if (idx !in building.windowIndexes) cell.color
-        else {
-            // window: bottom of the building (high y) lights first
-            val heightNorm = 1f - cell.y.toFloat() / sprite.rows  // 0 bottom .. 1 top
-            if (heightNorm <= lit) litColor else ConstructionColors.Paper
+        when {
+            idx !in building.windowIndexes -> cell.color
+            idx in litWindows -> litColor
+            else -> ConstructionColors.Paper
         }
     }
 }
@@ -83,9 +103,9 @@ fun ExchangeMeter(
     ratio: Double,
     modifier: Modifier = Modifier
 ) {
-    // Show 0.55..1.05 of the ratio space across the bar (matches the data's 0.61..1.01 range).
+    // Same mapping as the building facade so the meter and the lit windows always agree.
     val frac by animateFloatAsState(
-        targetValue = (((ratio - 0.55) / 0.50).coerceIn(0.0, 1.0)).toFloat(),
+        targetValue = litFractionFor(ratio),
         animationSpec = tween(160, easing = FastOutSlowInEasing),
         label = "exchangeFrac"
     )
@@ -186,13 +206,15 @@ fun ConfettiBurst(
         ConstructionColors.SkySoft, ConstructionColors.Cloud
     )
     // 40 seeded particles — deterministic pseudo-random from the index (no Math.random,
-    // which is unavailable; this also keeps it stable across recompositions).
-    val particles = remember {
+    // which is unavailable). Extract three values from DISJOINT bit-fields of the hash so each
+    // spans the full [0,1) — decimal-digit slicing of a 24-bit value collapsed the high field
+    // to [0,0.016], making every particle the same size. Re-seeded when `play` flips.
+    val particles = remember(play) {
         (0 until 40).map { i ->
-            val s = (i * 2654435761u.toLong()) and 0xFFFFFF      // cheap hash
-            val r1 = ((s % 1000) / 1000f)
-            val r2 = (((s / 1000) % 1000) / 1000f)
-            val r3 = (((s / 1000000) % 1000) / 1000f)
+            val s = (i * 2654435761u.toLong()) and 0xFFFFFF      // 24-bit cheap hash
+            val r1 = (s and 0xFF) / 256f                         // low byte
+            val r2 = ((s shr 8) and 0xFF) / 256f                 // mid byte
+            val r3 = ((s shr 16) and 0xFF) / 256f                // high byte
             Confetto(
                 x0 = r1,
                 drift = (r2 - 0.5f) * 0.4f,

@@ -208,7 +208,11 @@ fun building(
     while (wy <= bodyBottom - 2) {
         var wx = bodyLeft + 1
         while (wx <= bodyRight - 2) {
+            // All FOUR corners of the 2×2 window must be inside the silhouette, else a setback
+            // feature (ziggurat/twin-tower) could place half a window over empty space.
             if (inSilhouette(wx, wy, bodyLeft, bodyRight, bodyTop, bodyBottom, feature) &&
+                inSilhouette(wx + 1, wy, bodyLeft, bodyRight, bodyTop, bodyBottom, feature) &&
+                inSilhouette(wx, wy + 1, bodyLeft, bodyRight, bodyTop, bodyBottom, feature) &&
                 inSilhouette(wx + 1, wy + 1, bodyLeft, bodyRight, bodyTop, bodyBottom, feature)
             ) {
                 // record the index of this 2×2 window cell (drawn as one w=2,h=2 cell)
