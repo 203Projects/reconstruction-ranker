@@ -53,6 +53,13 @@ fun Route.hidesBottomNav(): Boolean = when (this) {
 
 // ============ State container ============
 
+/** Per-district quest progress (in-memory v1; // TODO persist via DataStore). */
+data class DistrictProgress(
+    val bestStars: Int = 0,
+    val bestRoi: Double? = null,
+    val cleared: Boolean = false
+)
+
 class AppState {
     var currentTab by mutableStateOf(Tab.Home)
         private set
@@ -64,6 +71,45 @@ class AppState {
 
     /** Saved 평형 store (in-memory; see [BookmarkStore]). */
     val bookmarks: BookmarkStore = BookmarkStore(clock = { nowMs() })
+
+    // ----- Gamification progress (in-memory; resets each launch) -----
+    val districtProgress = mutableStateMapOf<String, DistrictProgress>()
+    var totalStars by mutableStateOf(0)
+        private set
+    var districtsCleared by mutableStateOf(0)
+        private set
+
+    /** Stars earned by a finished quest, derived from the ALREADY-COMPUTED result.
+     *  Q2 uses ROI; Q1 (no ROI) uses the refund/비례율 outcome so Q1-only players still climb. */
+    fun starsFor(question: Question, roi: Double, burden: Double): Int = when (question) {
+        Question.Q2 -> when {
+            roi >= 0.40 -> 3
+            roi >= 0.15 -> 2
+            else -> 1
+        }
+        Question.Q1 -> when {
+            burden < 0 -> 3            // refund — best outcome
+            burden < 1000.0 -> 2       // under ~10억 to pay
+            else -> 1
+        }
+    }
+
+    /** Record a finished reveal. Takes the already-computed result so AppState never imports
+     *  the engine (avoids a see-vs-store desync). Keeps only the best run per district. */
+    fun recordReveal(districtName: String, question: Question, roi: Double, burden: Double) {
+        val stars = starsFor(question, roi, burden)
+        val prev = districtProgress[districtName] ?: DistrictProgress()
+        val wasClearedBefore = prev.cleared
+        val next = DistrictProgress(
+            bestStars = maxOf(prev.bestStars, stars),
+            bestRoi = listOfNotNull(prev.bestRoi, roi).maxOrNull(),
+            cleared = true
+        )
+        districtProgress[districtName] = next
+        // recompute aggregates from the map so they stay consistent
+        totalStars = districtProgress.values.sumOf { it.bestStars }
+        if (!wasClearedBefore) districtsCleared = districtProgress.values.count { it.cleared }
+    }
 
     /** Per-tab back stack. The root route is always at index 0. */
     private val stacks: MutableMap<Tab, SnapshotStateList<Route>> = mutableStateMapOf<Tab, SnapshotStateList<Route>>().also {

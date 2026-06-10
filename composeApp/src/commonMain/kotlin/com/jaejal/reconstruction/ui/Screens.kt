@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -59,6 +61,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jaejal.reconstruction.calc.Engine
@@ -68,6 +71,16 @@ import com.jaejal.reconstruction.data.Repository
 import com.jaejal.reconstruction.data.TypeInfo
 import com.jaejal.reconstruction.design.BookmarkHeart
 import com.jaejal.reconstruction.design.BottomNavItem
+import com.jaejal.reconstruction.design.Brand
+import com.jaejal.reconstruction.design.BuildingFacade
+import com.jaejal.reconstruction.design.Buildings
+import com.jaejal.reconstruction.design.ConfettiBurst
+import com.jaejal.reconstruction.design.CountUpNumber
+import com.jaejal.reconstruction.design.ExchangeMeter
+import com.jaejal.reconstruction.design.JaejalMascot
+import com.jaejal.reconstruction.design.MascotMood
+import com.jaejal.reconstruction.design.PixelSprite
+import com.jaejal.reconstruction.design.isAnimationEnabled
 import com.jaejal.reconstruction.design.ChipTone
 import com.jaejal.reconstruction.design.ConstructionBottomBar
 import com.jaejal.reconstruction.design.ConstructionLogo
@@ -196,7 +209,7 @@ private fun LoadingScreen() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(color = ConstructionColors.Gold, strokeWidth = 2.dp)
             VSpace(Design.spacing.md)
-            Text("데이터를 불러오는 중입니다…", color = ConstructionColors.InkMuted)
+            Text("${Brand.MASCOT_NAME}가 숫자 계산 중… 🧮", color = ConstructionColors.InkMuted)
         }
     }
 }
@@ -334,11 +347,11 @@ private fun RankingScreen(state: AppState) {
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = Design.spacing.xxl)
     ) {
-        item { RankingHero() }
+        item { RankingHero(totalStars = state.totalStars, cleared = state.districtsCleared, total = state.ranked.size) }
         item {
             SectionHeader(
-                title = "단지 랭킹",
-                sub = "종전자산 최소 타입의 기준 수익률 기준 내림차순"
+                title = "어느 동네가 1등 단지일까요? 👀",
+                sub = "기준 수익률이 높은 순서예요"
             )
         }
         itemsIndexed(
@@ -350,13 +363,17 @@ private fun RankingScreen(state: AppState) {
                     .animateItem()
                     .padding(horizontal = Design.spacing.gutter, vertical = 6.dp)
             ) {
-                RankCard(rank = i + 1, ranked = ranked) { state.openDistrict(ranked.district) }
+                RankCard(
+                    rank = i + 1,
+                    ranked = ranked,
+                    stars = state.districtProgress[ranked.district.name]?.bestStars ?: 0
+                ) { state.openDistrict(ranked.district) }
             }
         }
         item {
             SectionHeader(
-                title = "공개 예정",
-                sub = "곧 추가될 단지입니다",
+                title = "곧 공개돼요! 🔒",
+                sub = "${Brand.MASCOT_NAME}가 열심히 준비 중 🐤",
                 modifier = Modifier.padding(top = Design.spacing.md)
             )
         }
@@ -369,7 +386,7 @@ private fun RankingScreen(state: AppState) {
 }
 
 @Composable
-private fun RankingHero() {
+private fun RankingHero(totalStars: Int, cleared: Int, total: Int) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -393,22 +410,24 @@ private fun RankingHero() {
                 ConstructionLogo(size = 32.dp, onDark = true)
                 HSpace(Design.spacing.sm)
                 Text(
-                    "재건축 랭커",
+                    Brand.PRODUCT_NAME,
                     style = MaterialTheme.typography.displaySmall,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )
+                HSpace(Design.spacing.sm)
+                JaejalMascot(mood = MascotMood.Happy, size = 40.dp)
             }
             VSpace(4.dp)
             Text(
-                "공개 고시문 기반 분담금 · 매도판단 시뮬레이터",
+                "안녕, 난 ${Brand.MASCOT_NAME}! 새 아파트, 결국 내가 얼마 내야 할까? 🐤",
                 style = MaterialTheme.typography.bodySmall,
                 color = ConstructionColors.NavyTint
             )
             VSpace(Design.spacing.md)
             Row {
-                StatBadge("단지", "5"); HSpace(Design.spacing.sm)
-                StatBadge("공개 예정", "2"); HSpace(Design.spacing.sm)
+                StatBadge("⭐ 별", totalStars.toString()); HSpace(Design.spacing.sm)
+                StatBadge("🏢 깬 단지", "$cleared/$total"); HSpace(Design.spacing.sm)
                 StatBadge("기준일", "2026-05")
             }
         }
@@ -428,15 +447,24 @@ private fun StatBadge(label: String, value: String) {
 }
 
 @Composable
-private fun RankCard(rank: Int, ranked: RankedDistrict, onClick: () -> Unit) {
+private fun RankCard(rank: Int, ranked: RankedDistrict, stars: Int, onClick: () -> Unit) {
     val gold = rank == 1
+    val building = remember(ranked.district.name) { Buildings.forDistrict(ranked.district.name) }
     TrustCard(
         modifier = Modifier.fillMaxWidth(),
         emphasized = gold,
         onClick = onClick
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RankBadge(position = rank)
+            // Pixel building thumbnail + rank badge over its base
+            Box(contentAlignment = Alignment.BottomStart) {
+                PixelSprite(
+                    sprite = building.sprite,
+                    modifier = Modifier.size(48.dp),
+                    name = "thumb-${ranked.district.name}"
+                )
+                RankBadge(position = rank, modifier = Modifier.size(24.dp).offset(x = (-6).dp, y = 6.dp))
+            }
             HSpace(Design.spacing.lg)
             Column(Modifier.weight(1f)) {
                 Text(
@@ -453,9 +481,11 @@ private fun RankCard(rank: Int, ranked: RankedDistrict, onClick: () -> Unit) {
                 )
                 VSpace(Design.spacing.sm)
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (stars > 0) {
+                        Text("⭐".repeat(stars), style = MaterialTheme.typography.labelMedium, color = ConstructionColors.Gold)
+                        HSpace(6.dp)
+                    }
                     ToneChip(text = "${ranked.district.types.size}개 타입", tone = ChipTone.Neutral)
-                    HSpace(6.dp)
-                    ToneChip(text = "KB ${Format.eok(ranked.headlineType.kbPrice)}", tone = ChipTone.Primary)
                 }
             }
             HSpace(Design.spacing.sm)
@@ -617,7 +647,7 @@ internal fun formatTypeLabel(d: District, t: TypeInfo): String {
 private fun QuestionSelectScreen(state: AppState, d: District, t: TypeInfo) {
     Column(Modifier.fillMaxSize()) {
         DetailTopBar(
-            title = "어떤 질문을 풀어드릴까요?",
+            title = "뭐가 제일 궁금해요?",
             breadcrumb = listOf(d.name, formatTypeLabel(d, t)),
             onBack = { state.pop() }
         )
@@ -628,11 +658,32 @@ private fun QuestionSelectScreen(state: AppState, d: District, t: TypeInfo) {
                 .padding(Design.spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Design.spacing.lg)
         ) {
-            QuestionHeroCard(1, Question.Q1.title,
-                "공사비·조합원분양가·일반분양가가 움직이면 내 분담금이 얼마가 될지 슬라이더로 살펴봅니다.",
+            // 출발 코인 (종전자산) reveal — folded in here where d + t are in scope.
+            TrustCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    JaejalMascot(mood = MascotMood.Happy, size = 48.dp)
+                    HSpace(Design.spacing.md)
+                    Column(Modifier.weight(1f)) {
+                        Text("🪙 내 출발 코인", style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkSoft)
+                        Text(
+                            Format.eok(t.priorUnitPrice),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = ConstructionColors.Gold,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "지금 살고 있는 헌 집 값이에요. 재건축 게임의 밑천!",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = ConstructionColors.InkMuted
+                        )
+                    }
+                }
+            }
+            QuestionHeroCard(1, "💰 나 결국 얼마 더 내야 해?",
+                "레버를 움직여 내 분담금이 어떻게 변하는지 직접 봐요.",
                 ChipTone.Primary) { state.openQuestion(d, t, Question.Q1) }
-            QuestionHeroCard(2, Question.Q2.title,
-                "KB시세에 분담금을 더한 총투자금이 신축 완공 시 예상가액보다 낮은지 비교합니다.",
+            QuestionHeroCard(2, "🤔 지금 팔까, 들고 갈까?",
+                "헌 집값 + 분담금이 새 집 미래값보다 싼지 비교해서 점수를 매겨요.",
                 ChipTone.Gold) { state.openQuestion(d, t, Question.Q2) }
         }
     }
@@ -650,7 +701,7 @@ private fun QuestionHeroCard(index: Int, title: String, sub: String, tone: ChipT
                 ToneChip(text = "Q$index", tone = tone)
                 HSpace(Design.spacing.sm)
                 Text(
-                    if (tone == ChipTone.Primary) "분담금 시뮬레이션" else "매도·보유 판단",
+                    if (tone == ChipTone.Primary) "레버로 분담금 흔들기 🎚️" else "투자 점수 매기기 🏆",
                     style = MaterialTheme.typography.labelLarge,
                     color = ConstructionColors.InkSoft,
                     fontWeight = FontWeight.SemiBold
@@ -680,14 +731,18 @@ private fun QuestionHeroCard(index: Int, title: String, sub: String, tone: ChipT
 private fun DisclaimerScreen(state: AppState) {
     val scroll = rememberScrollState()
     Column(Modifier.fillMaxSize()) {
-        DetailTopBar(title = "잠시 안내드립니다", breadcrumb = listOf("면책 동의"), onBack = { state.pop() })
+        DetailTopBar(title = "게임 규칙 하나만! 📋", breadcrumb = listOf("규칙 확인"), onBack = { state.pop() })
         Column(
             Modifier.weight(1f).verticalScroll(scroll).padding(Design.spacing.gutter)
         ) {
-            Text("시뮬레이션 결과 활용에 관한 안내", style = MaterialTheme.typography.headlineLarge, color = ConstructionColors.Ink)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                JaejalMascot(mood = MascotMood.Thinking, size = 56.dp)
+                HSpace(Design.spacing.sm)
+                Text("잠깐, 시작 전에!", style = MaterialTheme.typography.headlineLarge, color = ConstructionColors.Ink)
+            }
             VSpace(Design.spacing.sm)
             Text(
-                "이 도구가 어떤 한계 안에서 도움이 되는지 먼저 짚어드립니다.",
+                "여기 숫자는 공식 고시문 기준 '추정치'예요. 감 잡는 덴 딱이지만, 진짜 계약 결정은 꼭 신중하게요. 약속? 🤝",
                 style = MaterialTheme.typography.bodyLarge,
                 color = ConstructionColors.InkSoft
             )
@@ -722,7 +777,7 @@ private fun DisclaimerScreen(state: AppState) {
                     containerColor = ConstructionColors.Gold,
                     contentColor = ConstructionColors.NavyDeep
                 )
-            ) { Text("동의하고 계속합니다", fontWeight = FontWeight.SemiBold) }
+            ) { Text("좋아요, 시작할게요! 🤝", fontWeight = FontWeight.SemiBold) }
         }
     }
 }
@@ -754,6 +809,11 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
     var factorJ by remember { mutableStateOf(1.0) }
     var atOverride by remember { mutableStateOf(d.base.estimatedNewPrice84) }
 
+    // The reveal is an in-screen toggle, NOT a route — keeps the four factors where they
+    // already live (screen-local). 확정 opens the chest; 다시 closes it for another go.
+    var revealed by remember { mutableStateOf(false) }
+    var revealCount by remember { mutableStateOf(0) }   // re-triggers the count-up; theatrical only on the 1st
+
     val result = Engine.calculate(
         base = d.base,
         type = t,
@@ -765,134 +825,161 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
 
     val peers = state.districts.filter { it.name != d.name }
     val peerShort: (District) -> String = { it.name.take(4) }
+    val building = remember(d.name) { Buildings.forDistrict(d.name) }
+    val isRefund = result.burden < 0
+    // 교환비 → how much of the building lights up (data lives ~0.61..1.01).
+    val litFraction = (((result.proportionRatio - 0.55) / 0.50).coerceIn(0.0, 1.0)).toFloat()
 
     Column(Modifier.fillMaxSize()) {
         DetailTopBar(
-            title = if (question == Question.Q1) "분담금 시뮬레이션" else "매도·보유 판단",
+            title = if (question == Question.Q1) "내 분담금 퀘스트" else "팔까 말까 퀘스트",
             breadcrumb = listOf(d.name, formatTypeLabel(d, t)),
             onBack = { state.pop() }
         )
 
-        // Results region — compacted. Q1 = one card; Q2 = two side-by-side cards.
-        // Retains verticalScroll only as a safety net on very short viewports.
+        AnimatedContent(
+            targetState = revealed,
+            transitionSpec = {
+                (scaleIn(spring(stiffness = Spring.StiffnessMediumLow), initialScale = 0.92f) + fadeIn(tween(220)))
+                    .togetherWith(fadeOut(tween(120)))
+            },
+            label = "reveal",
+            modifier = Modifier.weight(1f)
+        ) { isRevealed ->
+            if (!isRevealed) {
+                // ---------- CHEST CLOSED: live building + levers ----------
+                LeverStage(
+                    d = d, t = t, question = question, result = result,
+                    building = building, litFraction = litFraction, isRefund = isRefund,
+                    factorT = factorT, factorL = factorL, factorJ = factorJ, atOverride = atOverride,
+                    peers = peers, peerShort = peerShort,
+                    onFactorT = { factorT = it }, onFactorL = { factorL = it },
+                    onFactorJ = { factorJ = it }, onAt = { atOverride = it },
+                    onReset = {
+                        factorT = 1.0; factorL = 1.0; factorJ = 1.0
+                        atOverride = d.base.estimatedNewPrice84
+                    },
+                    onConfirm = {
+                        state.recordReveal(d.name, question, result.roi, result.burden)
+                        revealCount += 1
+                        revealed = true
+                    }
+                )
+            } else {
+                // ---------- CHEST OPEN: the reveal ----------
+                RevealStage(
+                    d = d, t = t, question = question, result = result,
+                    building = building, isRefund = isRefund,
+                    stars = state.starsFor(question, result.roi, result.burden),
+                    theatrical = revealCount <= 1,
+                    revealKey = revealCount,
+                    onRetry = { revealed = false },
+                    onBookmark = { state.toggleBookmark(d, t) },
+                    isBookmarked = state.isBookmarked(d, t),
+                    onRanking = { state.popToRoot(); state.selectTab(Tab.Home) }
+                )
+            }
+        }
+    }
+}
+
+/** Chest-closed stage: the live "building grows" facade + 교환비 meter + lever sliders. */
+@Composable
+private fun LeverStage(
+    d: District, t: TypeInfo, question: Question, result: com.jaejal.reconstruction.data.SimulationResult,
+    building: com.jaejal.reconstruction.design.Building, litFraction: Float, isRefund: Boolean,
+    factorT: Double, factorL: Double, factorJ: Double, atOverride: Double,
+    peers: List<District>, peerShort: (District) -> String,
+    onFactorT: (Double) -> Unit, onFactorL: (Double) -> Unit,
+    onFactorJ: (Double) -> Unit, onAt: (Double) -> Unit,
+    onReset: () -> Unit, onConfirm: () -> Unit
+) {
+    val dense = question == Question.Q2
+    Column(Modifier.fillMaxSize()) {
+        // Live building + 교환비 meter + wobbling estimate (chest 🔒 closed)
         Column(
             Modifier
-                .weight(if (question == Question.Q2) 0.35f else 0.45f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)
+                .weight(if (dense) 0.42f else 0.48f)
+                .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (question == Question.Q1) {
-                // Q1: single 분담금 card. Read order 종전자산 → 권리가액 → 전용84 조합원분양가
-                // (권리가액 = 종전자산 × 비례율, so 종전자산 sits above 권리가액).
-                TrustCard(modifier = Modifier.fillMaxWidth()) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            ToneChip(text = "분담금", tone = ChipTone.Primary)
-                            HSpace(Design.spacing.sm)
-                            Text("비례율 ${Format.percent(result.proportionRatio)}", style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkMuted)
-                        }
-                        VSpace(Design.spacing.sm)
-                        HeroNumber(
-                            value = Format.burdenWithRefund(result.burden),
-                            tone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss,
-                            label = if (result.burden < 0) "환급 받습니다" else "추가로 납부합니다"
-                        )
-                        VSpace(Design.spacing.md)
-                        HairlineDivider()
-                        VSpace(Design.spacing.sm)
-                        StatLine("종전자산 추정가액", Format.eok(t.priorUnitPrice))
-                        StatLine("권리가액", Format.eok(result.rights))
-                        StatLine("전용84 조합원분양가", Format.eok(result.unionPrice84))
-                    }
-                }
-            } else {
-                // Q2: 분담금 + 투자수익 side-by-side to free vertical room for 4 sliders.
-                Row(horizontalArrangement = Arrangement.spacedBy(Design.spacing.md)) {
-                    TrustCard(
-                        modifier = Modifier.weight(1f),
-                        padding = PaddingValues(Design.spacing.md)
-                    ) {
-                        Column {
-                            ToneChip(text = "분담금", tone = ChipTone.Primary)
-                            VSpace(Design.spacing.sm)
-                            Text("비례율 ${Format.percent(result.proportionRatio)}", style = MaterialTheme.typography.labelMedium, color = ConstructionColors.InkMuted)
-                            HeroNumber(
-                                value = Format.burdenWithRefund(result.burden),
-                                tone = if (result.burden < 0) ChipTone.Gain else ChipTone.Loss
-                            )
-                            VSpace(Design.spacing.sm)
-                            HairlineDivider()
-                            VSpace(Design.spacing.xs)
-                            StatLine("종전자산", Format.eok(t.priorUnitPrice))
-                            StatLine("권리가액", Format.eok(result.rights))
-                        }
-                    }
-                    TrustCard(
-                        modifier = Modifier.weight(1f),
-                        padding = PaddingValues(Design.spacing.md)
-                    ) {
-                        Column {
-                            ToneChip(text = "투자 수익", tone = ChipTone.Gold)
-                            VSpace(Design.spacing.sm)
-                            Text("총투자금 vs 신축예상", style = MaterialTheme.typography.labelMedium, color = ConstructionColors.InkMuted)
-                            HeroNumber(
-                                value = Format.percent(result.roi),
-                                tone = if (result.roi >= 0) ChipTone.Gain else ChipTone.Loss,
-                                label = "수익률"
-                            )
-                            VSpace(Design.spacing.sm)
-                            HairlineDivider()
-                            VSpace(Design.spacing.xs)
-                            StatLine("총투자금", Format.eok(result.totalInvest))
-                            StatLine("마진", Format.eok(result.margin),
-                                tone = if (result.margin >= 0) ChipTone.Gain else ChipTone.Loss)
-                        }
-                    }
-                }
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                BuildingFacade(
+                    building = building,
+                    litFraction = litFraction,
+                    isRefund = isRefund,
+                    modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight()
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text("교환비 💱", style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkSoft)
+                HSpace(Design.spacing.sm)
+                Box(Modifier.weight(1f)) { ExchangeMeter(ratio = result.proportionRatio) }
+                HSpace(Design.spacing.sm)
+                Text(
+                    Format.percent(result.proportionRatio),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (result.proportionRatio >= 1.0) ConstructionColors.Gold else ConstructionColors.InkSoft,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            VSpace(Design.spacing.sm)
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(ConstructionColors.Surface, RoundedCornerShape(Design.radii.lg))
+                    .padding(Design.spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (isRefund) "분담금 ≈ ${Format.eok(kotlin.math.abs(result.burden))} 돌려받을지도? 🔒"
+                    else "분담금 ≈ ${Format.eok(result.burden)} 낼지도? 🔒",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ConstructionColors.InkSoft
+                )
             }
         }
 
         HairlineDivider()
 
-        // Slider region — NO internal scroll. All sliders fit at once (item 7/8/9).
-        // Q2 has 4 sliders, so it runs in compact mode + a larger weight to fit a phone viewport.
-        val dense = question == Question.Q2
+        // Lever region — reskinned sliders + 확정.
         Column(
             Modifier
-                .weight(if (dense) 0.72f else 0.55f)
+                .weight(if (dense) 0.58f else 0.52f)
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.md)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Design.spacing.gutter, vertical = Design.spacing.sm)
         ) {
-            Text("변수를 움직여 보세요", style = MaterialTheme.typography.titleLarge, color = ConstructionColors.Ink, fontWeight = FontWeight.SemiBold)
-            Text("기준 × 0.6 ~ 1.4 범위에서 즉시 반영됩니다", style = MaterialTheme.typography.bodySmall, color = ConstructionColors.InkMuted)
+            Text("레버를 움직여 봐요 🎚️", style = MaterialTheme.typography.titleLarge, color = ConstructionColors.Ink, fontWeight = FontWeight.SemiBold)
+            Text("숫자가 살아 움직여요 — 건물이 같이 반응해요", style = MaterialTheme.typography.bodySmall, color = ConstructionColors.InkMuted)
 
             ConstructionSlider(
-                title = "공사비",
-                sub = "기준 평당 ${Format.manwon(d.base.pyeongConstructionCost)}",
+                title = "🧱 공사비",
+                sub = "싸게 ◄ ► 비싸게 · 기준 평당 ${Format.manwon(d.base.pyeongConstructionCost)}",
                 value = factorT,
                 valueDisplay = Format.manwon(d.base.pyeongConstructionCost * factorT),
-                onValueChange = { factorT = it },
+                onValueChange = onFactorT,
                 range = 0.6..1.4,
                 markers = peers.map { PeerMarker(peerShort(it), it.base.pyeongConstructionCost / d.base.pyeongConstructionCost) },
                 compact = dense
             )
             ConstructionSlider(
-                title = "국민평형 조합원분양가 (전용84)",
-                sub = "기준 ${Format.eok(d.base.unionPrice84)}",
+                title = "🏠 식구 가격",
+                sub = "조합원분양가 · 기준 ${Format.eok(d.base.unionPrice84)}",
                 value = factorL,
                 valueDisplay = Format.eok(d.base.unionPrice84 * factorL),
-                onValueChange = { factorL = it },
+                onValueChange = onFactorL,
                 range = 0.6..1.4,
                 markers = peers.map { PeerMarker(peerShort(it), it.base.unionPrice84 / d.base.unionPrice84) },
                 compact = dense
             )
             ConstructionSlider(
-                title = "국민평형 일반분양가 (전용84)",
-                sub = "기준 ${Format.eok(d.base.publicPrice84)}",
+                title = "📈 바깥 분양",
+                sub = "일반분양가 · 기준 ${Format.eok(d.base.publicPrice84)}",
                 value = factorJ,
                 valueDisplay = Format.eok(d.base.publicPrice84 * factorJ),
-                onValueChange = { factorJ = it },
+                onValueChange = onFactorJ,
                 range = 0.6..1.4,
                 markers = peers.map { PeerMarker(peerShort(it), it.base.publicPrice84 / d.base.publicPrice84) },
                 compact = dense
@@ -901,41 +988,182 @@ private fun SimulationScreen(state: AppState, d: District, t: TypeInfo, question
                 val atMin = d.base.estimatedNewPrice84 * 0.6
                 val atMax = d.base.estimatedNewPrice84 * 1.4
                 ConstructionSlider(
-                    title = "신축 예상가",
-                    sub = "기준 ${Format.eok(d.base.estimatedNewPrice84)}",
+                    title = "✨ 미래 몸값",
+                    sub = "신축 예상가 · 기준 ${Format.eok(d.base.estimatedNewPrice84)}",
                     value = atOverride,
                     valueDisplay = Format.eok(atOverride),
-                    onValueChange = { atOverride = it },
+                    onValueChange = onAt,
                     range = atMin..atMax,
                     markers = peers.map { PeerMarker(peerShort(it), it.base.estimatedNewPrice84) },
                     compact = true
                 )
             }
-            VSpace(if (dense) Design.spacing.xs else Design.spacing.sm)
-            ActionRow(
-                onReset = {
-                    factorT = 1.0; factorL = 1.0; factorJ = 1.0
-                    atOverride = d.base.estimatedNewPrice84
-                }
-            )
+            VSpace(Design.spacing.sm)
+            Row(horizontalArrangement = Arrangement.spacedBy(Design.spacing.sm)) {
+                OutlinedButton(
+                    onClick = onReset,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(Design.radii.xl),
+                    border = BorderStroke(1.dp, ConstructionColors.Border),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.InkSoft)
+                ) { Text("되돌리기 ↩️") }
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(2f),
+                    shape = RoundedCornerShape(Design.radii.xl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ConstructionColors.Gold,
+                        contentColor = ConstructionColors.NavyDeep
+                    )
+                ) { Text("확정 🥁", fontWeight = FontWeight.Bold) }
+            }
+            VSpace(Design.spacing.sm)
         }
     }
 }
 
+/** Chest-open stage: the 분담금 reveal — count-up, celebration/empathy branch, follow-through. */
 @Composable
-private fun ActionRow(onReset: () -> Unit) {
-    // Consolidated to the single reset action. The "고쳐주세요" / "우리 단지도"
-    // entries live on the My tab (TabScreens.MyScreen) — keeping them here too
-    // was redundant and cost a row of vertical space in the slider panel.
-    FilledTonalButton(
-        onClick = onReset,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Design.radii.xl),
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = ConstructionColors.GoldSoft,
-            contentColor = ConstructionColors.Gold
-        )
-    ) {
-        Text("기본값으로", fontWeight = FontWeight.SemiBold)
+private fun RevealStage(
+    d: District, t: TypeInfo, question: Question, result: com.jaejal.reconstruction.data.SimulationResult,
+    building: com.jaejal.reconstruction.design.Building, isRefund: Boolean,
+    stars: Int, theatrical: Boolean, revealKey: Int,
+    onRetry: () -> Unit, onBookmark: () -> Unit, isBookmarked: Boolean, onRanking: () -> Unit
+) {
+    val scroll = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .verticalScroll(scroll)
+                .padding(Design.spacing.gutter),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // mascot + building topping out
+            JaejalMascot(
+                mood = if (isRefund) MascotMood.Celebrating else MascotMood.Worried,
+                size = 72.dp
+            )
+            VSpace(Design.spacing.sm)
+            Text(
+                if (isRefund) "잭팟! 돈을 돌려받아요! 🎉" else "퀘스트 클리어! 💪",
+                style = MaterialTheme.typography.headlineMedium,
+                color = if (isRefund) ConstructionColors.Gain else ConstructionColors.Gold,
+                fontWeight = FontWeight.Bold
+            )
+            VSpace(Design.spacing.lg)
+
+            TrustCard(modifier = Modifier.fillMaxWidth(), emphasized = true) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        if (isRefund) "내 분담금 (환급)" else "내 분담금",
+                        style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkMuted
+                    )
+                    VSpace(Design.spacing.xs)
+                    CountUpNumber(
+                        targetMillionWon = kotlin.math.abs(result.burden),
+                        format = { Format.eok(it) },
+                        tone = if (isRefund) ChipTone.Gain else ChipTone.Gold,
+                        key = revealKey,
+                        animate = theatrical && isAnimationEnabled
+                    )
+                    VSpace(Design.spacing.sm)
+                    StarRow(stars)
+                    VSpace(Design.spacing.md)
+                    HairlineDivider()
+                    VSpace(Design.spacing.sm)
+                    // The teaching chain
+                    Text(
+                        "🪙 내 헌 집 × 💱 교환비 = 💰 내 몫 · 새 집 값 − 내 몫 = 분담금!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ConstructionColors.InkSoft,
+                        textAlign = TextAlign.Center
+                    )
+                    if (!isRefund) {
+                        VSpace(Design.spacing.sm)
+                        Text(
+                            "${Format.eok(result.burden)}은 한 번에 내는 게 아니라 단계별로 나눠 내요. 미리 알았으니 이제 계획을 세울 수 있어요 🫶",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ConstructionColors.InkSoft,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            // Q2 silver-lining: the investment score flips a payment into a possible win.
+            if (question == Question.Q2) {
+                VSpace(Design.spacing.md)
+                TrustCard(modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ToneChip(text = "투자 점수", tone = ChipTone.Gold)
+                            HSpace(Design.spacing.sm)
+                            Text(
+                                if (result.margin >= 0) "남는 장사예요! 🏆" else "지금은 빠듯한 그림이에요 ⚖️",
+                                style = MaterialTheme.typography.labelLarge, color = ConstructionColors.InkSoft
+                            )
+                        }
+                        VSpace(Design.spacing.sm)
+                        HeroNumber(
+                            value = Format.percent(result.roi),
+                            tone = if (result.roi >= 0) ChipTone.Gain else ChipTone.Loss,
+                            label = "최종 점수 (수익률)"
+                        )
+                        VSpace(Design.spacing.sm)
+                        HairlineDivider()
+                        VSpace(Design.spacing.xs)
+                        StatLine("내가 쏟은 돈 (총투자금)", Format.eok(result.totalInvest))
+                        StatLine("남는 돈 (마진)", Format.eok(result.margin),
+                            tone = if (result.margin >= 0) ChipTone.Gain else ChipTone.Loss)
+                    }
+                }
+            }
+
+            VSpace(Design.spacing.lg)
+            Row(horizontalArrangement = Arrangement.spacedBy(Design.spacing.sm)) {
+                OutlinedButton(
+                    onClick = onBookmark,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(Design.radii.xl),
+                    border = BorderStroke(1.dp, ConstructionColors.Border),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.Gold)
+                ) { Text(if (isBookmarked) "저장됨 🔖" else "저장 🔖") }
+                OutlinedButton(
+                    onClick = onRetry,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(Design.radii.xl),
+                    border = BorderStroke(1.dp, ConstructionColors.Border),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ConstructionColors.InkSoft)
+                ) { Text("다시 🔁") }
+                Button(
+                    onClick = onRanking,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(Design.radii.xl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ConstructionColors.Gold,
+                        contentColor = ConstructionColors.NavyDeep
+                    )
+                ) { Text("랭킹 🏆", fontWeight = FontWeight.SemiBold) }
+            }
+            VSpace(Design.spacing.xxl)
+        }
+
+        // Confetti overlay — refund only, one-shot.
+        ConfettiBurst(play = isRefund, modifier = Modifier.fillMaxSize())
+    }
+}
+
+@Composable
+private fun StarRow(stars: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        repeat(3) { i ->
+            Text(
+                if (i < stars) "⭐" else "☆",
+                style = MaterialTheme.typography.headlineSmall,
+                color = if (i < stars) ConstructionColors.Gold else ConstructionColors.InkMuted
+            )
+        }
     }
 }
