@@ -203,8 +203,8 @@ fun BookmarkListScreen(state: AppState) {
 
         if (bookmarks.isEmpty()) {
             EmptyState(
-                title = "아직 북마크한 평형이 없습니다",
-                sub = "단지 상세에서 평형 카드의 하트를 눌러 저장해 보세요",
+                title = "아직 저장한 평형이 없어요",
+                sub = "마음에 드는 곳에 하트를 눌러봐요 🔖",
                 ctaLabel = "단지 보기",
                 onCta = { state.selectTab(Tab.Districts) },
                 icon = ConstructionIcons.HeartOutline
@@ -314,7 +314,7 @@ fun MyScreen(state: AppState) {
                                 containerColor = ConstructionColors.Gold,
                                 contentColor = ConstructionColors.NavyDeep
                             )
-                        ) { Text("고쳐주세요", fontWeight = FontWeight.SemiBold) }
+                        ) { Text("🛠️ 숫자가 이상해요", fontWeight = FontWeight.SemiBold) }
                         Button(
                             onClick = { /* stub */ },
                             modifier = Modifier.weight(1f),
@@ -322,7 +322,7 @@ fun MyScreen(state: AppState) {
                                 containerColor = ConstructionColors.NavyTint,
                                 contentColor = ConstructionColors.Ink
                             )
-                        ) { Text("우리 단지도", fontWeight = FontWeight.SemiBold) }
+                        ) { Text("📮 우리 동네도", fontWeight = FontWeight.SemiBold) }
                     }
                 }
             }

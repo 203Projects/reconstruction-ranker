@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -233,9 +234,12 @@ fun StatLine(
             .heightIn(min = 32.dp)
             .padding(vertical = Design.spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(Design.spacing.sm)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Label takes flexible space and ellipsizes if cramped; the VALUE never wraps
+        // (softWrap=false) so e.g. "2.29억 (환급)" stays on one line in a narrow 2-up card
+        // instead of breaking mid-token as "(환" / "급)".
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
@@ -245,13 +249,21 @@ fun StatLine(
                 )
                 HSpace(Design.spacing.xs)
             }
-            Text(label, color = ConstructionColors.InkSoft, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                label,
+                color = ConstructionColors.InkSoft,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         Text(
             value,
             color = fg,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }

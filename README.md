@@ -1,4 +1,4 @@
-# 재건축 랭커 · Reconstruction Ranker
+# 재잘 (Jaejal) · 재건축 분담금 퀘스트
 
 > 공개 고시문 기반 분담금 · 매도판단 시뮬레이터 — Kotlin Multiplatform (iOS + Android)
 
